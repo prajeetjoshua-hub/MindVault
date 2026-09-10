@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { BackHandler, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { BackHandler, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 import Svg, { Path, Rect, Circle } from 'react-native-svg';
@@ -22,12 +22,44 @@ function Icon({ name, size = 22 }: { name: string; size?: number }) {
 function Button({ children, onPress, secondary = false }: { children: string; onPress: () => void; secondary?: boolean }) {
   return <Pressable accessibilityRole="button" onPress={onPress} style={({ pressed }) => [s.button, secondary && s.secondary, pressed && { opacity: .75 }]}><Text style={[s.buttonText, secondary && { color: c.forest }]}>{children}</Text></Pressable>;
 }
-export default function MindVault() {
+export default function MindVaultPreview() {
+  const { width, height } = useWindowDimensions();
+  if (Platform.OS !== 'web') return <MindVault />;
+  const sideBySide = width >= 960;
+  return <ScrollView style={phone.stage} contentContainerStyle={phone.page}>
+    <View style={phone.siteHeader}><View style={s.brand}><View style={s.logo}><Icon name="leaf"/></View><Text style={phone.siteBrand}>MindVault<Text style={{color:'#D5F59C'}}>.</Text></Text></View><Text style={phone.siteLabel}>A SMALL BEGINNING, A THOUGHTFUL VISION</Text></View>
+    <View style={[phone.columns, { flexDirection: sideBySide ? 'row' : 'column', gap: sideBySide ? 72 : 42 }]}>
+      <View style={phone.demoColumn}>
+        <View style={phone.demoLabel}><View style={s.dot}/><Text style={phone.kicker}>EXPLORE THE PROTOTYPE</Text><Text style={phone.version}>01 / UI DEMO</Text></View>
+        <View style={[phone.device, { height: Math.min(800, Math.max(620, height - 150)), width: 390 }]}>
+          <View style={phone.top}><View style={phone.speaker}/><View style={phone.camera}/></View>
+          <View style={phone.screen}><MindVault /></View>
+          <View style={phone.bottom}><View style={phone.homeIndicator}/></View>
+        </View>
+        <Text style={phone.caption}>SCROLL INSIDE THE PHONE · TAP TO EXPLORE</Text>
+      </View>
+      <View style={phone.story}>
+        <Text style={phone.kicker}>A COMPANION FOR YOUR EVERYDAY</Text>
+        <Text accessibilityRole="header" style={[phone.headline,{fontSize:sideBySide?58:42}]}>A little company.{ '\n'}<Text style={{color:'#D5F59C'}}>A little more calm.</Text></Text>
+        <Text style={phone.description}>Some days, finding the words is the first step. MindVault explores a gentle space to pause, reflect, and approach everyday feelings—with a friendly squirrel by your side.</Text>
+        <View style={phone.tags}><Text style={phone.tag}>PRIVACY-FIRST VISION</Text><Text style={phone.tag}>YOUR PACE, YOUR CHOICE</Text></View>
+        <View style={phone.features}>{[
+          ['01','A companion, not a blank screen','A familiar little squirrel brings warmth to the interface. Tap it in the demo for a small hop.'],
+          ['02','Start in your own way','Type, Voice, and Guided Check-in show three planned ways to begin. Each currently opens a locked preview.'],
+          ['03','A space designed around you','The vision puts user choice and private interaction first. This prototype collects no personal entries or recordings.'],
+        ].map(([number,title,body])=><View style={phone.feature} key={number}><Text style={phone.number}>{number}</Text><View style={{flex:1}}><Text style={phone.featureTitle}>{title}</Text><Text style={phone.featureBody}>{body}</Text></View></View>)}</View>
+        <View style={phone.status}><View style={phone.statusTop}><View style={s.dot}/><Text style={phone.kicker}>WHERE WE ARE TODAY</Text></View><Text style={phone.featureBody}>An interactive interface prototype. Chat, safety logic, intelligent routing, local storage, and clinical validation are planned for later phases. No medical advice or care is provided.</Text><Text style={phone.scope}>Intended audience: ages 13 and up. Suitability and age-appropriate safeguards require future evaluation.</Text></View>
+      </View>
+    </View>
+    <View style={phone.siteFooter}><Text style={phone.footerText}>MINDVAULT · ONE SMALL STEP AT A TIME</Text><Text style={phone.footerText}>prajeetjoshua-hub</Text></View>
+  </ScrollView>;
+}
+function MindVault() {
   const [screen, setScreen] = useState<Screen>('home');
   const [mode, setMode] = useState<Mode>('Type');
   const [intro, setIntro] = useState(true);
   const { width } = useWindowDimensions();
-  const wide = width > 760;
+  const wide = Platform.OS !== 'web' && width > 760;
   useEffect(() => { const sub = BackHandler.addEventListener('hardwareBackPress', () => {
     if (screen !== 'home') { setScreen('home'); return true; } return false;
   }); return () => sub.remove(); }, [screen]);
@@ -37,7 +69,7 @@ export default function MindVault() {
     <ScrollView contentContainerStyle={s.scroll} key={screen}>
       {screen === 'home' ? <>
         <View style={s.eyebrowRow}><Text style={s.eyebrow}>A LITTLE SPACE, JUST FOR YOU</Text><Text style={s.small}>One small step at a time</Text></View>
-        <View style={[s.hero, wide && { flexDirection: 'row' }]}>
+        <View style={[s.hero, { flexDirection: wide ? 'row' : 'column-reverse' }]}>
           <View style={s.heroCopy}><Text style={[s.title, wide && { fontSize: 52 }]}>A softer place{ '\n'}to land.</Text><Text style={s.lead}>Pause for a moment. Meet your little companion. Take things one small step at a time.</Text><View style={{ alignSelf: 'flex-start', marginTop: 24 }}><Button onPress={() => open('Type')}>Meet your companion  →</Button></View><Text style={s.heroFoot}>A first look at a more thoughtful everyday ritual.</Text></View>
           <View style={s.companion}><View style={s.bubble}><Text style={s.bubbleText}>Hey, I’m glad you’re here.</Text><Text style={s.small}>Your little pause partner</Text></View><Squirrel/><Text style={s.tap}>TAP FOR A LITTLE HOP</Text></View>
         </View>
@@ -56,5 +88,42 @@ export default function MindVault() {
 const s = StyleSheet.create({
   safe:{flex:1,backgroundColor:c.background},header:{paddingHorizontal:24,paddingVertical:18,borderBottomWidth:1,borderColor:c.border,flexDirection:'row',justifyContent:'space-between',alignItems:'center',backgroundColor:c.white},brand:{flexDirection:'row',gap:9,alignItems:'center'},logo:{padding:8,backgroundColor:c.green,borderRadius:13},wordmark:{fontSize:23,fontWeight:'700',color:c.ink,letterSpacing:-1},pill:{flexDirection:'row',gap:7,alignItems:'center',backgroundColor:c.pale,paddingHorizontal:10,paddingVertical:8,borderRadius:30},pillText:{fontSize:10,fontWeight:'700',letterSpacing:1,color:c.forest},dot:{width:6,height:6,borderRadius:3,backgroundColor:'#679747'},scroll:{width:'100%',maxWidth:1080,alignSelf:'center',padding:24,paddingBottom:28},eyebrowRow:{gap:10,flexDirection:'row',justifyContent:'space-between',flexWrap:'wrap',marginVertical:14},eyebrow:{fontSize:10,fontWeight:'700',letterSpacing:1.6,color:c.forest},small:{fontSize:12,color:c.muted,lineHeight:18},hero:{backgroundColor:'#EAF5D9',borderRadius:28,padding:28,gap:20,overflow:'hidden'},heroCopy:{flex:1,justifyContent:'center'},title:{fontSize:42,fontWeight:'700',letterSpacing:-1.7,color:c.ink,lineHeight:undefined},lead:{fontSize:16,lineHeight:26,color:c.muted,marginTop:16},button:{backgroundColor:c.forest,paddingVertical:16,paddingHorizontal:20,borderRadius:14,minHeight:48,justifyContent:'center'},buttonText:{fontWeight:'600',fontSize:14,color:c.white,textAlign:'center'},secondary:{backgroundColor:c.white,borderWidth:1,borderColor:c.border},heroFoot:{fontSize:11,lineHeight:18,color:c.muted,marginTop:14},companion:{alignItems:'center',justifyContent:'center',minWidth:250,paddingTop:8},bubble:{padding:14,borderRadius:17,backgroundColor:c.white,transform:[{rotate:'-3deg'}],gap:3},bubbleText:{fontSize:14,color:c.ink,fontWeight:'600'},tap:{fontSize:9,letterSpacing:1.5,color:c.forest,marginTop:6},onboarding:{padding:20,borderWidth:1,borderColor:c.border,borderRadius:18,marginTop:20,gap:16,flexDirection:'row',alignItems:'center',backgroundColor:c.white},cardTitle:{fontSize:17,fontWeight:'600',color:c.ink,marginBottom:6},body:{fontSize:13,lineHeight:21,color:c.muted},sectionHeading:{marginTop:32,marginBottom:18,flexDirection:'row',justifyContent:'space-between',alignItems:'center',gap:12},heading:{fontSize:23,letterSpacing:-.6,fontWeight:'600',color:c.ink,marginBottom:5},modes:{gap:14},mode:{flex:1,padding:22,borderWidth:1,borderColor:c.border,borderRadius:20,backgroundColor:c.white},modeTop:{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginBottom:20},iconBox:{padding:12,backgroundColor:c.pale,borderRadius:14},coming:{fontSize:9,fontWeight:'600',letterSpacing:1,color:c.forest,marginTop:23},privacy:{marginTop:22,backgroundColor:c.pale,padding:22,borderRadius:18,flexDirection:'row',gap:16},footer:{fontSize:9,letterSpacing:1.8,color:c.muted,textAlign:'center',marginTop:32},nav:{flexDirection:'row',justifyContent:'center',gap:8,paddingHorizontal:12,paddingVertical:12,borderTopWidth:1,borderColor:c.border,backgroundColor:c.white},navItem:{paddingVertical:12,paddingHorizontal:14,borderRadius:13,flexDirection:'row',alignItems:'center',gap:7,minHeight:46},navActive:{backgroundColor:c.pale},navText:{fontSize:12,fontWeight:'600',color:c.muted},locked:{alignItems:'center',paddingVertical:24,gap:10},lockIllustration:{backgroundColor:c.pale,borderRadius:140,marginTop:22,padding:10},notice:{padding:22,borderWidth:1,borderColor:c.border,backgroundColor:c.white,borderRadius:18,marginVertical:14,width:'100%',maxWidth:600},fakeInput:{borderWidth:1,borderColor:c.border,borderRadius:18,padding:18,flexDirection:'row',alignItems:'center',gap:10,marginBottom:16,width:'100%',maxWidth:600,flexWrap:'wrap'},about:{maxWidth:680,width:'100%',alignSelf:'center',gap:10,paddingVertical:22},
 });
+const phone = StyleSheet.create({
+  stage: { flex: 1, backgroundColor: '#0C120F' },
+  page: { width: '100%', maxWidth: 1200, alignSelf: 'center', paddingHorizontal: 24, paddingTop: 25, paddingBottom: 20 },
+  siteHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 20, flexWrap: 'wrap', paddingBottom: 25, borderBottomWidth: 1, borderColor: '#26342B' },
+  siteBrand: { color: '#F6F8F3', fontWeight: '700', fontSize: 25, letterSpacing: -1 },
+  siteLabel: { color: '#839788', fontSize: 9, letterSpacing: 1.6 },
+  columns: { alignItems: 'center', paddingTop: 34, paddingBottom: 34 },
+  demoColumn: { width: 390, maxWidth: '100%', alignItems: 'center' },
+  demoLabel: { flexDirection: 'row', gap: 8, alignItems: 'center', width: '100%', marginBottom: 15, paddingHorizontal: 6 },
+  kicker: { color: '#C8E9A6', fontSize: 9, fontWeight: '600', letterSpacing: 1.5 },
+  version: { color: '#84968A', fontSize: 9, marginLeft: 'auto' },
+  device: { maxWidth: '100%', borderRadius: 38, borderWidth: 7, borderColor: '#405447', backgroundColor: '#FAFCF8', overflow: 'hidden', boxShadow: '0 20px 80px rgba(139, 194, 101, 0.09)' },
+  top: { height: 23, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 7 },
+  speaker: { width: 43, height: 5, borderRadius: 5, backgroundColor: '#2C4036' },
+  camera: { width: 5, height: 5, borderRadius: 5, backgroundColor: '#2C4036' },
+  screen: { flex: 1, overflow: 'hidden' },
+  bottom: { height: 15, alignItems: 'center', justifyContent: 'center', backgroundColor: '#FFFFFF' },
+  homeIndicator: { width: 94, height: 4, borderRadius: 4, backgroundColor: '#2C4036' },
+  caption: { marginTop: 15, color: '#84968A', fontSize: 8, letterSpacing: 1.5 },
+  story: { flex: 1, width: '100%', maxWidth: 600 },
+  headline: { color: '#F6F8F3', fontWeight: '600', letterSpacing: -2.5, marginTop: 20, marginBottom: 20 },
+  description: { color: '#A7B6AC', fontSize: 16, lineHeight: 27, maxWidth: 550 },
+  tags: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 22, marginBottom: 16 },
+  tag: { color: '#CAE5AF', borderWidth: 1, borderColor: '#33472E', borderRadius: 20, paddingVertical: 8, paddingHorizontal: 12, fontSize: 8, letterSpacing: 1 },
+  features: { marginBottom: 23 },
+  feature: { flexDirection: 'row', gap: 17, paddingVertical: 17, borderBottomWidth: 1, borderColor: '#253128' },
+  number: { color: '#91B377', fontSize: 10, paddingTop: 3 },
+  featureTitle: { color: '#EDF3E8', fontSize: 16, fontWeight: '500', marginBottom: 5 },
+  featureBody: { color: '#A7B6AC', fontSize: 12, lineHeight: 21 },
+  status: { padding: 18, backgroundColor: '#162019', borderWidth: 1, borderColor: '#2C3F2F', borderRadius: 16 },
+  statusTop: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 10 },
+  scope: { color: '#84968A', fontSize: 10, lineHeight: 17, marginTop: 10 },
+  siteFooter: { borderTopWidth: 1, borderColor: '#26342B', paddingTop: 19, flexDirection: 'row', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' },
+  footerText: { color: '#7D9283', fontSize: 8, letterSpacing: 1.2 },
+});
+
+
 
 
