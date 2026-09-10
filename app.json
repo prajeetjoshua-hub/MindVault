@@ -1,0 +1,20 @@
+{
+  "expo": {
+    "name": "MindVault",
+    "slug": "mindvault",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.prajeetjoshuahub.mindvault"
+    },
+    "android": {
+      "package": "com.prajeetjoshuahub.mindvault"
+    },
+    "web": {
+      "name": "MindVault",
+      "shortName": "MindVault"
+    }
+  }
+}
