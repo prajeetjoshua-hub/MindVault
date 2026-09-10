@@ -1,6 +1,6 @@
 # MindVault
 
-A calm, white-and-light-green React Native / Expo interface prototype for adults **18+**, with an original animated squirrel companion.
+A calm, white-and-light-green React Native / Expo interface prototype for ages **13+**, with an original animated squirrel companion.
 
 Owner and publisher: **prajeetjoshua-hub**.
 
@@ -9,6 +9,8 @@ Owner and publisher: **prajeetjoshua-hub**.
 This is **UI-only progress**. Home, introductory guidance, Type / Voice / Guided Check-in entry cards, companion animation, About, and navigation are implemented. Every entry card opens a **not yet unlocked** screen. There is no chat composer or microphone recording. The greeting is scripted.
 
 Clinical logic, safety classification, intelligent routing, local storage, backend services, and clinical validation are **not implemented**. The prototype provides no medical advice, diagnosis, treatment, or emergency support.
+
+The intended 13+ audience is a design scope, not a validated suitability claim. Age-appropriate safeguards and evaluation are required before an interactive release for teenagers.
 
 ## Preview
 
@@ -31,7 +33,7 @@ npm run export:web # static browser build in dist/
 
 ## Walkthrough
 
-1. Read the introductory 18+ notice and select **Got it** (session-only dismissal).
+1. Read the introductory 13+ notice and select **Got it** (session-only dismissal).
 2. Tap the squirrel to see a small hop. System reduced-motion preferences disable the animation.
 3. Select **Type**, **Voice**, or **Guided Check-in**. Each opens its labelled locked companion preview.
 4. Return using **Back to your space**, the bottom navigation, or Android Back.
@@ -52,3 +54,4 @@ app.json                      Expo application settings
 ```
 
 Dependencies are pinned by package-lock.json. No service keys or environment configuration are required. Native device QA and clinical evaluation remain future work.
+
