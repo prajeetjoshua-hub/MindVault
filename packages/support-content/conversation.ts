@@ -57,7 +57,7 @@ export function conversationalReply(
       "You’re right to point it out. I’ve been leaning on stock replies instead of responding to what you said. I’ll give you space to finish, without another question.",
     ]);
   const purchase = text.match(
-    /\b(?:got|bought|received|picked up) (?:a |an |my )?(?:brand[- ]?)?new (monitor|phone|laptop|keyboard|headphones|bike|book|computer)\b/,
+    /\b(?:got|bought|received|picked up) (?:a |an |my |the )?(?:brand[- ]?)?new (monitor|phone|laptop|keyboard|headphones|bike|book|computer)\b/,
   );
   if (purchase && /\b(?:broken|doesn'?t work|not working)\b/.test(text))
     return `That’s frustrating, especially when your ${purchase[1]} is new. Would you like to talk about the disappointment, or think through what to do about it?`;
