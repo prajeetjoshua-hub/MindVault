@@ -18,16 +18,31 @@ test("available local model handles ordinary unknown wording and receives conver
         : "That sounds like an enjoyable upgrade. What have you watched on it?";
     },
   });
-  await engine.process("I got a new monitor", defaultPreferences);
+  await engine.process("I noticed a red kite on the bus ride home", defaultPreferences);
   const result = await engine.process(
-    "its so good its a 4K monitor",
+    "It kept circling above the station while I waited",
     defaultPreferences,
   );
   assert.equal(result.source, "local-model");
-  assert.doesNotMatch(requests.at(-1)!.context, /User: i got a new monitor/);
+  assert.doesNotMatch(requests.at(-1)!.context, /User: i noticed a red kite/);
   assert.equal(requests.at(-1)!.turns?.[0].role, "user");
-  assert.equal(requests.at(-1)!.turns?.[0].content, "I got a new monitor");
+  assert.equal(requests.at(-1)!.turns?.[0].content, "I noticed a red kite on the bus ride home");
   assert.equal(requests.at(-1)!.turns?.[1].role, "assistant");
+});
+test("authored topic replies take precedence over the optional local model", async () => {
+  let calls = 0;
+  const engine = new ConversationOrchestrator(() => {}, {
+    ready: () => true,
+    cancel: async () => {},
+    generate: async () => {
+      calls++;
+      return "A generic generated answer";
+    },
+  });
+  const result = await engine.process("I got a new monitor", defaultPreferences);
+  assert.equal(result.source, "template");
+  assert.match(result.text, /monitor/i);
+  assert.equal(calls, 0);
 });
 test("safety ambiguity and unresolved concern never use the ordinary fallback model", async () => {
   let calls = 0;

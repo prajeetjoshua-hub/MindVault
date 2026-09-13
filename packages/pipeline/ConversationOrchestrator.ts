@@ -8,7 +8,7 @@ import type {
 import { normalise } from "../normalisation/normalise.ts";
 import { extractEvidence } from "../evidence/extractEvidence.ts";
 import { evaluatePolicy } from "../policy/evaluatePolicy.ts";
-import { respond } from "../support-content/respond.ts";
+import { isGenericFallback, respond } from "../support-content/respond.ts";
 import { validateReplyQuality } from "../output-gate/validateReplyQuality.ts";
 import { buildContext } from "./buildContext.ts";
 import { selectMemories } from "../personalisation/selectMemories.ts";
@@ -350,16 +350,22 @@ export class ConversationOrchestrator {
             .filter((sentence) => !sentence.includes("?"))
             .join(" ") ||
           "I hear you. There’s no need to answer another question right now.";
+      // MEDIUM distress can benefit from the local model's warmer wording. LOW
+      // messages use it only when the authored layer returned a generic fallback.
+      const modelEligible =
+        eligible && (decision.route === "MEDIUM" || isGenericFallback(output));
       let source: "template" | "local-model" = "template";
-      event("model-gate", eligible ? "completed" : "skipped", {
-        eligible,
-        reason: eligible
+      event("model-gate", modelEligible ? "completed" : "skipped", {
+        eligible: modelEligible,
+        reason: modelEligible
           ? permission.reason
           : permission.allowed
-            ? "model-unavailable"
+            ? eligible
+              ? "authored-specific-response"
+              : "model-unavailable"
             : "policy-disallows-generation",
       });
-      if (eligible) {
+      if (modelEligible) {
         event("model", "started", {
           model: this.model?.modelName ?? "local-model-unspecified",
           contextMode: "all-passages-hierarchical-summary",

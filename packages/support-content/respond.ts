@@ -1,6 +1,14 @@
 import type { Decision, Preferences } from "../contracts/types.ts";
 import { conversationalReply, isReplyFeedback } from "./conversation.ts";
 import { contextualReply } from './contextualReply.ts';
+
+/** True when the authored layer could not find a specific conversation response. */
+export function isGenericFallback(text: string) {
+  return /^(?:Thank you for telling me\. Would you like to tell me a little more about that\?|I haven’t quite understood that message\. My local conversation model isn’t available to help with this reply yet\. Could you explain what you mean\?|I don’t want to keep asking you the same thing\.)/i.test(
+    text,
+  );
+}
+
 export function respond(
   decision: Decision,
   text: string,

@@ -20,4 +20,4 @@ Food and relationship matching never runs before safety extraction. Cutting or h
 
 ## Coverage boundary
 
-These phrase families make common demonstrations more natural and reduce the old generic fallback. They do not understand every possible wording. Unseen or ambiguous language is sent to the local SLM only when policy allows it; safety and uncertainty continue to withhold generation. New examples should be added as tests before being presented as supported behavior.
+These phrase families make common demonstrations more natural and reduce the old generic fallback. They do not understand every possible wording. LOW messages with a specific authored match keep that deterministic answer; MEDIUM support may use the local SLM for warmer wording; unseen LOW wording can use the SLM only when the authored layer returns a generic fallback. Safety and uncertainty continue to withhold generation. New examples should be added as tests before being presented as supported behavior.
