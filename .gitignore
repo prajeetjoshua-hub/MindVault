@@ -46,3 +46,10 @@ yarn-error.*
 !.env.example
 preview/
 *.log
+prototype-dist/
+.monitor/
+models/
+*.gguf
+*.pfx
+*.crt
+.runtime/

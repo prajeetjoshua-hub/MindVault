@@ -1,6 +1,6 @@
 # MindVault
 
-A calm, white-and-light-green React Native / Expo interface prototype for ages **13+**, with an original animated squirrel companion.
+A React Native / Expo self-help prototype for ages **13+**, with an original animated squirrel companion. The public UI demo and the local **Quiet Forest** functional prototype are separate experiences.
 
 Owner and publisher: **prajeetjoshua-hub**.
 
@@ -18,7 +18,23 @@ Hosted on GitHub Pages. The demo remains UI-only, with chat interaction locked.
 
 The black-and-green webpage places the working phone demo on the left and explains the MindVault idea on the right. On smaller screens these sections stack. Scroll inside the phone to explore the white-and-light-green app.
 
-## Prototype status
+## Local Quiet Forest prototype
+
+The new functional prototype includes typed conversations, guided check-in, preferences, opt-in session history, export, memory controls, experimental deterministic routing and a separate live pipeline dashboard. Desktop regression tests cover routing, long-message processing, cancellation, model fallback and diagnostic authentication. Passing these tests is not clinical validation.
+
+```sh
+npm ci
+npm test
+npm run prototype:web
+```
+
+Open `http://localhost:8082/`. In a second terminal run `npm run dashboard`, then open the private local URL it prints. Pair through **Settings → Demo connection** to see actual trace events and score contributions. Do not publish session tokens. The browser prototype keeps conversation data in memory only.
+
+Native authentication, encrypted storage and local-model adapters are written but still require an Android build and device testing. **Offline voice is not enabled.** Phone testing targets a Samsung F15 with Android 16 and 6 GB RAM. The native prototype requires a development or standalone build, not Expo Go.
+
+See [the architecture, model artifact, limitations and run instructions](docs/FUNCTIONAL-PROTOTYPE.md). Use `npm run prototype:export` for a static functional browser build; the existing website export remains separate.
+
+## Public UI demo status
 
 This is **UI-only progress**. Home, introductory guidance, Type / Voice / Guided Check-in entry cards, companion animation, About, and navigation are implemented. Every entry card opens a **not yet unlocked** screen. There is no chat composer or microphone recording. The greeting is scripted.
 
@@ -26,7 +42,7 @@ Clinical logic, safety classification, intelligent routing, local storage, backe
 
 The intended 13+ audience is a design scope, not a validated suitability claim. Age-appropriate safeguards and evaluation are required before an interactive release for teenagers.
 
-## Preview
+## Public UI demo preview
 
 Use Node.js 22.13 or newer (Node 24 recommended).
 
@@ -55,12 +71,19 @@ npm run export:web # static browser build in dist/
 
 ## Privacy-first direction
 
-The app requests no personal entries, account details, microphone permission, or health history. It contains no analytics or application backend calls. Navigation state is held only in memory and resets on reload. Secure local storage is a future feature, not a present guarantee. Expo development tooling may connect to the development server; the prototype is not a certified private health-data system.
+The public UI demo requests no personal entries, account details, microphone permission, or health history. Its navigation state resets on reload. The functional prototype adds user-entered conversations and optional local diagnostics; its desktop storage is volatile and its native security still awaits device verification. Expo development tooling connects to the development server. Neither prototype is a certified private health-data system.
 
 ## Structure
 
 ```text
 App.tsx                       Entry component
+apps/mobile/                  Quiet Forest native/desktop functional prototype
+apps/dashboard/               Separate live diagnostic website
+packages/                     Independent processing layers and contracts
+tools/monitor-service/        Authenticated local diagnostic receiver
+tests/                        Synthetic regression tests
+scripts/                      Separate preview, export and test commands
+metro.config.js               Isolated public/prototype build caches
 src/MindVault.tsx             Home, locked preview, About, navigation
 src/components/Squirrel.tsx   Original vector companion and hop animation
 src/theme.ts                  Shared color palette
@@ -70,7 +93,7 @@ app.config.js                 GitHub Pages production base path
 docs/live-demo-qr.png          Permanent live-demo QR
 ```
 
-Dependencies are pinned by package-lock.json. No service keys or environment configuration are required. Native device QA and clinical evaluation remain future work.
+Dependencies are pinned by package-lock.json. Desktop use needs no cloud service keys. Native device QA, trusted phone-to-dashboard HTTPS setup, model licence access and clinical evaluation remain pending.
 
 ## Website publishing
 
