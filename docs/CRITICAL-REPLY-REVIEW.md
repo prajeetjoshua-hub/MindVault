@@ -12,7 +12,7 @@ The submitted transcript exposed serious false negatives. The prototype is not r
 
 ## Verification
 
-115 automated tests passed, including the newly reported critical messages, a full replay of the reported browser transcripts, privacy questions phrased as “seeing/viewing,” duplicate identity questions, sleep-related worry, feedback after a safety phrase, assault followed by pain, model output quality guards, persistent family conflict with sleep loss, and ordinary idioms that should not trigger safety. TypeScript checks passed. These tests cover explicit fixtures, not all possible language or clinical accuracy.
+119 automated tests passed, including the newly reported critical messages, a full replay of the reported browser transcripts, breakup context, self-harm method wording, explicit self-harm recovery, food and relationship coverage, privacy questions phrased as “seeing/viewing,” duplicate identity questions, sleep-related worry, feedback after a safety phrase, assault followed by pain, model output quality guards, persistent family conflict with sleep loss, and ordinary idioms that should not trigger safety. TypeScript checks passed. These tests cover explicit fixtures, not all possible language or clinical accuracy.
 
 The browser initially served stale code and reproduced the old thank-you failure. After restarting the development server with its cache cleared, browser verification confirmed that the exact “better go die” message receives safety clarification and “my mom slapped me” receives physical-safety wording. Enter submitted both messages successfully.
 

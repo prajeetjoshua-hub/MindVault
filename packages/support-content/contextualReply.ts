@@ -1,4 +1,6 @@
 import type { Preferences } from '../contracts/types.ts';
+import { foodReply } from './foodContext.ts';
+import { relationshipReply } from './relationshipContext.ts';
 
 /** Authored fallback coverage; not a trained emotion model. */
 export function contextualReply(
@@ -15,11 +17,20 @@ export function contextualReply(
     else return 'I’m here and ready to chat with you. How has your day been?';
   if (/^(?:i am|i'm|im) (?:good|fine|great)[!.\s]*$/.test(text))
     return 'Glad to hear that. Has it been a relaxed day, or has something good happened?';
+  if (/\b(?:i\s+)?(?:feel|feeling|am)\s+hurt(?:ed)?\b/.test(text))
+    return choose([
+      'Ayyo, what happened? That sounds painful. I’m here with you—tell me what happened.',
+      'Oh no, I’m sorry you’re hurting. You can start wherever it feels easiest; I’m listening.',
+    ]);
   if (/\b(?:you|u)\b.*\b(?:eat|ate|breakfast)|\bdo you eat\b/.test(text))
     return choose([
       'I don’t eat or have a body, so no breakfast for me! What did you have?',
       'I don’t eat, but I’m interested in yours—what did you have for breakfast?',
     ]);
+  const relationship = relationshipReply(text, context, previousReply);
+  if (relationship) return relationship;
+  const food = foodReply(text, context, previousReply);
+  if (food) return food;
   if (/\bmonitor\b/.test(text) && /\b(?:broken|broke|not working|arrived damaged)\b/.test(text))
     return 'That’s frustrating after looking forward to using it. Is the screen damaged, or does it fail to turn on?';
   if (/\b(?:family issues?|issues at home)\b/.test(text) && !/\b(?:fight|fighting|argu(?:e|ing|ments))\b/.test(text))

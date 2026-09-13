@@ -36,7 +36,7 @@ export const safetyRules = [
   {
     id: "current-harm",
     pattern:
-      /\b(?:hurt(?:ing)?|harm(?:ed|ing)?|kill(?:ed|ing)?)\s+(?:myself|himself|herself|themselves)|\b(?:end(?:ing)?|take|taking)\s+my\s+life|\b(?:suicid(?:e|al)|wants? to die|feel(?:s|ing)? like (?:dying|ending (?:my|their) life)|wish i (?:was|were) dead|wish i (?:could|would) die|want to be dead|(?:don't|dont|do not) want to (?:live|be alive)|no reason to live)\b/g,
+      /\b(?:hurt(?:ing)?|harm(?:ed|ing)?|kill(?:ed|ing)?)\s+(?:myself|himself|herself|themselves)|\b(?:cut(?:ting)?|slash(?:ing)?)\s+(?:myself|my\s+(?:hand|arm|wrist))|\b(?:end(?:ing)?|take|taking)\s+my\s+life|\b(?:suicid(?:e|al)|wants? to die|feel(?:s|ing)? like (?:dying|ending (?:my|their) life)|wish i (?:was|were) dead|wish i (?:could|would) die|want to be dead|(?:don't|dont|do not) want to (?:live|be alive)|no reason to live)\b/g,
   },
   {
     id: "danger",

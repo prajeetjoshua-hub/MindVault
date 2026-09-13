@@ -32,6 +32,7 @@ export class ConversationOrchestrator {
   private assaultPending = false;
   private selfHarmPending = false;
   private conversationGoal?: Preferences["goal"];
+  private safetyReassurances = 0;
   constructor(
     private emit: (event: TraceEvent) => void,
     private model?: ModelAdapter,
@@ -51,6 +52,7 @@ export class ConversationOrchestrator {
     this.assaultPending = false;
     this.selfHarmPending = false;
     this.conversationGoal = undefined;
+    this.safetyReassurances = 0;
     this.unresolvedSafety = false;
     this.acuteAction = false;
     this.safetyChecks = 0;
@@ -154,6 +156,14 @@ export class ConversationOrchestrator {
       const injuryFollowup =
         this.assaultPending &&
         /\b(?:hurts?|hurting|painful|pain|paining|slapped|face)\b/.test(text);
+      const priorConversation = this.recentUsers.join("\n");
+      const relationshipContext = /\b(?:break[- ]?up|broke up|relationship|left me|dumped me|partner)\b/.test(
+        `${priorConversation} ${text}`,
+      );
+      const reassuranceNow =
+        /\b(?:i(?: am|'m)? (?:totally |completely |now )?(?:safe|fine|okay|ok|good|alright)|i feel better|i am not in (?:any |immediate )?danger)\b/.test(
+          text,
+        );
       const urgentAssault =
         this.assaultPending &&
         /\b(?:coming to hit|about to hit|help(?: me+)?|save me)\b/.test(text);
@@ -178,22 +188,31 @@ export class ConversationOrchestrator {
         extracted.evidence,
         this.unresolvedSafety,
         this.acuteAction,
+        this.safetyReassurances,
       );
       this.unresolvedSafety = transition.pending;
       this.acuteAction = transition.acuteAction;
+      const activeSafety = transition.evidence.some(
+        (e) => e.category === "safety",
+      );
+      if (transition.resolved) this.safetyReassurances = 0;
+      else if (reassuranceNow && !activeSafety)
+        this.safetyReassurances = Math.min(2, this.safetyReassurances + 1);
+      else this.safetyReassurances = 0;
       const decision: Decision = evaluatePolicy(
         transition.evidence,
         extracted.topic,
         this.unresolvedSafety,
         lexicalCoverage,
       );
-      if (transition.clarify) {
+      if (transition.clarify && !transition.acuteAction) {
         decision.route = "CLARIFY";
         decision.reasons = ["safety-check-pending"];
       }
       if (transition.resolved) {
         this.assaultPending = false;
         this.selfHarmPending = false;
+        this.acuteAction = false;
         decision.reasons.push("user-reported-safe");
         this.safetyChecks = 0;
       }
@@ -245,24 +264,48 @@ export class ConversationOrchestrator {
         this.recentUsers.join("\n"),
         this.previousReply,
       );
+      const safetyReassurance = reassuranceNow;
+      const selfHarmMethod =
+        /\b(?:cut(?:ting)?|slash(?:ing)?)\s+(?:myself|my\s+(?:hand|arm|wrist))\b/.test(
+          text,
+        );
       if (transition.contextFirst)
         output =
-          isReplyFeedback(text)
+          selfHarmMethod
+            ? relationshipContext
+              ? "I’m really sorry this breakup is hurting so much. Please don’t cut yourself—someone leaving does not decide your worth. Put down anything sharp and move near a trusted person now. Have you already hurt your hand, or are you feeling the urge to do it?"
+              : "I’m really sorry this is hurting so much. Please don’t cut yourself. Put down anything sharp and move near a trusted person now. Have you already hurt your hand, or are you feeling the urge to do it?"
+            : isReplyFeedback(text)
             ? "You’re right to question that response. I should take your words seriously instead of sounding as if I could leave the conversation. Are you safe right now, and are you thinking about ending your life or have you already hurt yourself?"
             : "That sounds painful, and I’m taking what you said seriously. Are you thinking about ending your life, or describing how overwhelmed you feel?";
       if (transition.clarify) {
-        output =
-          this.safetyChecks++ === 0
-            ? "I hear you. Just to clarify what you said earlier: are you safe right now, and have you avoided hurting yourself? You can tell me plainly; I won’t treat feeling better as something to argue with."
-            : "I haven’t understood whether you’re safe yet. You can confirm that directly, or use Help & support if you need someone now. I can also listen to what’s making this moment difficult.";
+        if (this.acuteAction) {
+          output =
+            this.safetyChecks++ === 0
+              ? "I hear you, but because you said you were hurting yourself, I need one clear check: have you stopped, and are you injured or bleeding right now? Move away from anything sharp and get a trusted person with you. If you are bleeding or badly hurt, use Help & support or contact local emergency services now."
+              : "I’m still concerned because you said you were hurting yourself. Please tell me whether you have stopped and whether you need medical help. You can keep this short; if you may hurt yourself again, move near someone you trust and use Help & support now.";
+        } else if (safetyReassurance) {
+          this.safetyChecks++;
+          output =
+            "I hear you saying you feel better. Are you sure you’re safe right now? You can tell me anything that is bothering you, and I’ll stay with what you want to talk through. You deserve support, and you don’t have to make a permanent decision in a painful moment.";
+        } else {
+          output =
+            this.safetyChecks++ === 0
+              ? "I hear you. Just to clarify what you said earlier: are you safe right now, and have you avoided hurting yourself? You can tell me plainly; I won’t treat feeling better as something to argue with."
+              : "I’m still listening. I want to make sure I understood the safety concern before we move on: are you safe right now, and have you avoided hurting yourself? You can answer that directly, and then we can return to what you wanted to talk about.";
+        }
         if (isReplyFeedback(text))
           output = "I hear that my replies aren’t helping. " + output;
       }
       if (transition.resolved)
-        output =
-          "Thanks for clarifying that you’re safe and haven’t hurt yourself. We can move on—I won’t keep repeating the emergency message. What would you like to talk about?";
+        output = relationshipContext
+          ? "Thanks for clarifying that you’re safe. We can move on—I won’t keep repeating the emergency message. Do you want to tell me more about what happened in the breakup?"
+          : /\bmonitor\b/.test(`${priorConversation} ${text}`)
+            ? "Thanks for clarifying that you’re safe. We can move on—I won’t keep repeating the emergency message. How are you enjoying your monitor?"
+            : "Thanks for clarifying that you’re safe. We can move on—I won’t keep repeating the emergency message. What would you like to talk about now?";
       if (
         transition.clarify &&
+        !this.acuteAction &&
         this.safetyChecks > 1 &&
         /\b(?:talk|about|monitor|movies)\b/.test(text)
       ) {
@@ -278,7 +321,11 @@ export class ConversationOrchestrator {
       const selfHarmNow = extracted.evidence.some(
         (e) => e.category === "safety" && e.id === "current-harm",
       );
-      if (urgentAssault && !selfHarmNow) {
+      if (selfHarmNow && !transition.contextFirst) {
+        output =
+          "I’m really sorry you’re in this much pain. You said you are hurting yourself, so please put down anything sharp and get a trusted person beside you now. Are you bleeding or seriously injured? If you are, or you may hurt yourself again, use Help & support or contact local emergency services immediately. This app cannot call for you.";
+        decision.route = "SAFETY";
+      } else if (urgentAssault && !selfHarmNow) {
         output =
           "You’re asking for help after being hit. If you can do so safely, get away from the person hurting you and reach a trusted adult, neighbour, or nearby person now. Open Help & support to call emergency services. This app cannot send help or call for you. You do not need to keep typing here before seeking help.";
         decision.route = "SAFETY";

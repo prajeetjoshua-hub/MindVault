@@ -40,7 +40,7 @@ export async function extractEvidence(
             .at(-1) ?? "";
         const contextualUncertainty =
           category === "safety" &&
-          /(?:(?:don'?t|do not|not going to|never)\s+(?:want to\s+|ever\s+)?$|(?:used to|years ago|in (?:a|the) (?:book|movie)|fictional).{0,65}$)/.test(
+          /(?:(?:don'?t|do not|not going to|never)\s+(?:want to\s+|ever\s+)?$|(?:stopped|no longer|not currently|did stop)\s*$|(?:used to|years ago|in (?:a|the) (?:book|movie)|fictional).{0,65}$)/.test(
             prefix,
           );
         const deniedHarm =

@@ -6,11 +6,12 @@ export function safetyTransition(
   evidence: Evidence[],
   pending: boolean,
   acuteAction: boolean,
+  reassuranceChecks = 0,
 ) {
   const active = evidence.some((e) => e.category === "safety");
   const reportedAction =
     active &&
-    /\b(?:already (?:hurt|harmed)|i (?:have |just )?(?:hurt|harmed) myself|(?:have |just )?(?:taken too many pills|overdosed)|(?:took|swallowed) .{0,30}(?:pills|poison))\b/.test(
+    /\b(?:already (?:hurt|harmed|cut)|i (?:am |have |just )?(?:currently )?(?:hurt(?:ing)?|harm(?:ed|ing)?|cut|cutting)\s+(?:myself|my\s+(?:hand|arm|wrist))|(?:have |just )?(?:taken too many pills|overdosed)|(?:took|swallowed) .{0,30}(?:pills|poison))\b/.test(
       text,
     );
   if (active)
@@ -36,19 +37,33 @@ export function safetyTransition(
     /\b(?:(?:i )?(?:didn'?t|haven'?t|have not|did not) (?:hurt|harm|injure)(?:ed)? myself|no harm|i (?:am not|don't|dont|do not) (?:going to hurt myself|planning to hurt myself|want to die))\b/.test(
       text,
     );
+  const recovery =
+    /\b(?:i(?:'m| am)?|we)\s+(?:safe|okay|ok|fine|alright|good)\b/.test(text) &&
+    /\b(?:stopped|no longer|not currently|did stop|finished hurting|put down|moved away|got help|received help|treated)\b/.test(text) &&
+    /\b(?:hurt(?:ing)?|harm(?:ed|ing)?|cut(?:ting)?|bleed(?:ing)?|injur(?:y|ed))\b/.test(text);
   const otherUncertainty = evidence.some(
-    (e) => e.category === "uncertainty" && e.id !== "denied-harm",
+    (e) =>
+      e.category === "uncertainty" &&
+      e.id !== "denied-harm" &&
+      e.id !== "current-harm-context",
   );
   const resolved =
-    pending && !acuteAction && reassurance && denial && !otherUncertainty;
+    pending &&
+    !active &&
+    reassurance &&
+    !otherUncertainty &&
+    ((!acuteAction && (denial || reassuranceChecks > 0)) ||
+      (acuteAction && recovery));
   return {
     pending: pending && !resolved,
-    acuteAction,
+    acuteAction: resolved ? false : acuteAction,
     resolved,
-    clarify: pending && !resolved && !acuteAction,
+    clarify: pending && !resolved,
     contextFirst: false,
     evidence: resolved
-      ? evidence.filter((e) => e.id !== "denied-harm")
+      ? evidence.filter(
+          (e) => !["denied-harm", "current-harm-context"].includes(e.id),
+        )
       : evidence,
   };
 }
