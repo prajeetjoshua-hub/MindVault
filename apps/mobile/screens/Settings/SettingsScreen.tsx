@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Platform, ScrollView, Switch, Text, TextInput, View } from "react-native";
+import { Platform, ScrollView, Text, TextInput, View } from "react-native";
 import type {
   AppData,
   Preferences,
@@ -13,7 +13,7 @@ type Props = {
   onPreferences: (p: Preferences) => void;
   addMemory: (text: string) => void;
   forget: (id: string) => void;
-  deleteAll: () => void;
+  deleteAll: (password?: string) => Promise<boolean>;
   connect: (json: string) => void;
   disconnect: () => void;
   connection: string;
@@ -26,6 +26,8 @@ export function SettingsScreen(p: Props) {
     [memory, setMemory] = useState(""),
     [pairing, setPairing] = useState(""),
     [modelToken, setModelToken] = useState(""),
+    [deletePassword, setDeletePassword] = useState(""),
+    [deleteError, setDeleteError] = useState(""),
     [confirm, setConfirm] = useState(false);
   const pref = p.data.preferences;
   return (
@@ -144,37 +146,58 @@ export function SettingsScreen(p: Props) {
                 : "This browser version keeps data in memory only. Native unlock and encrypted storage must be tested on Android."}
             </Text>
           </View>
-          <View style={ui.row}>
-            <Text style={ui.body}>Keep conversation history</Text>
-            <Switch
-              accessibilityLabel="Keep conversation history"
-              value={pref.saveHistory}
-              onValueChange={(saveHistory) =>
-                p.onPreferences({ ...pref, saveHistory })
-              }
-            />
+          <View style={ui.card}>
+            <Text style={ui.cardTitle}>Saved chats are always optional</Text>
+            <Text style={ui.body}>
+              Conversations are kept only when you press Save this chat. A
+              separate MindVault password is required to view or delete them.
+            </Text>
           </View>
-          <Text style={ui.small}>
-            Off by default. Turning this off stops future saves; use Journal to
-            delete existing entries.
-          </Text>
           {confirm ? (
             <View style={ui.card}>
               <Text style={ui.body}>
                 Delete all local history, memories, preferences and diagnostic
                 traces? Exported copies are outside the app’s control.
               </Text>
+              {p.data.savedChatsLock && (
+                <TextInput
+                  accessibilityLabel="Password to delete all local data"
+                  value={deletePassword}
+                  onChangeText={setDeletePassword}
+                  secureTextEntry
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  placeholder="Enter saved-chats password"
+                  placeholderTextColor={colors.muted}
+                  style={ui.input}
+                />
+              )}
+              {!!deleteError && <Text style={ui.error}>{deleteError}</Text>}
               <Button
                 title="Delete all local data"
+                disabled={Boolean(p.data.savedChatsLock && !deletePassword)}
                 onPress={() => {
-                  p.deleteAll();
-                  setConfirm(false);
+                  void p.deleteAll(deletePassword).then((deleted) => {
+                    if (!deleted) {
+                      setDeleteError(
+                        "The password was incorrect or deletion could not complete.",
+                      );
+                      return;
+                    }
+                    setDeletePassword("");
+                    setDeleteError("");
+                    setConfirm(false);
+                  });
                 }}
               />
               <Button
                 title="Cancel"
                 secondary
-                onPress={() => setConfirm(false)}
+                onPress={() => {
+                  setConfirm(false);
+                  setDeletePassword("");
+                  setDeleteError("");
+                }}
               />
             </View>
           ) : (
@@ -189,7 +212,11 @@ export function SettingsScreen(p: Props) {
       {page === "Model & voice" && (
         <>
           <View style={ui.card}>
-            <Text style={ui.cardTitle}>{Platform.OS === 'web' ? 'Desktop conversation model' : 'Local Gemma 3 1B'}</Text>
+            <Text style={ui.cardTitle}>
+              {Platform.OS === "web"
+                ? "Desktop Qwen connection"
+                : "Local conversation model"}
+            </Text>
             <Text style={ui.body}>{p.modelStatus}</Text>
             <Text style={ui.small}>
               {Platform.OS === 'web' ? 'Connect a verified local runtime on this computer. ' : 'Official Q4_0 artifact. Import only after accepting its licence. '}

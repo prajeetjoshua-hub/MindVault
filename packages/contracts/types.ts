@@ -58,11 +58,18 @@ export type Conversation = {
   messages: Message[];
   updatedAt: string;
 };
+export type SavedChatsLock = {
+  scheme: "pbkdf2-sha256";
+  salt: string;
+  verifier: string;
+  iterations: number;
+};
 export type AppData = {
   version: 1;
   conversations: Conversation[];
   memories: Memory[];
   preferences: Preferences;
+  savedChatsLock?: SavedChatsLock;
 };
 export type ModelRequest = {
   turns?: { role: 'user' | 'assistant'; content: string }[];
@@ -74,6 +81,7 @@ export type ModelRequest = {
 export interface ModelAdapter {
   modelName?: string;
   ready(): boolean;
+  autoConnect?(): Promise<boolean>;
   generate(request: ModelRequest): Promise<string>;
   cancel(): Promise<void>;
 }

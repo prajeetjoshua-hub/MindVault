@@ -12,10 +12,11 @@ type Props = {
   setDraft: (value: string) => void;
   send: () => void;
   busy: boolean;
-  progress: string;
   stop: () => void;
   help: () => void;
   localModelReady: boolean;
+  modelName: string;
+  saveChat: () => void;
 };
 export function CompanionScreen(p: Props) {
   const scroll = useRef<ScrollView>(null);
@@ -24,6 +25,19 @@ export function CompanionScreen(p: Props) {
   }, [p.messages.length]);
   return (
     <View style={s.root}>
+      <View
+        accessibilityLiveRegion="polite"
+        style={[s.modelStatus, p.localModelReady && s.modelConnected]}
+      >
+        <View
+          style={[s.statusDot, p.localModelReady && s.statusDotConnected]}
+        />
+        <Text style={s.modelStatusText}>
+          {p.localModelReady
+            ? `${p.modelName.startsWith("qwen3") ? "Qwen3 4B" : "Local model"} connected · replies stay on this computer`
+            : "Deterministic engine active · Qwen is not connected"}
+        </Text>
+      </View>
       <ScrollView
         ref={scroll}
         contentContainerStyle={s.messages}
@@ -59,15 +73,27 @@ export function CompanionScreen(p: Props) {
             <Text selectable style={s.text}>
               {m.text}
             </Text>
+            {m.role === "companion" && (
+              <Text style={s.sourceLabel}>
+                {m.source === "local-model"
+                  ? "LOCAL QWEN REPLY"
+                  : "DETERMINISTIC REPLY"}
+              </Text>
+            )}
             {m.route === "SAFETY" && (
               <Button title="Help & support" onPress={p.help} />
             )}
           </View>
         ))}
         {p.busy && (
-          <Text accessibilityLiveRegion="polite" style={ui.body}>
-            {p.progress || "Taking a moment with what you shared…"}
-          </Text>
+          <View
+            accessibilityLabel="Your companion is preparing a reply"
+            accessibilityLiveRegion="polite"
+            style={[s.bubble, s.companion, s.typingBubble]}
+          >
+            <Text style={ui.tag}>YOUR COMPANION</Text>
+            <Text style={s.typingDots}>•••</Text>
+          </View>
         )}
       </ScrollView>
       <View style={s.composer}>
@@ -88,11 +114,12 @@ export function CompanionScreen(p: Props) {
           style={[ui.input, s.input]}
         />
         <View style={s.tools}>
-          <Text style={ui.small}>
-            {p.localModelReady
-              ? "On-device companion"
-              : "Structured reply preview"}
-          </Text>
+          <Button
+            title="Save this chat"
+            secondary
+            disabled={!p.messages.length || p.busy}
+            onPress={p.saveChat}
+          />
           {p.busy ? (
             <Button title="Stop" secondary onPress={p.stop} />
           ) : (

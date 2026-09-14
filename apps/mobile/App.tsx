@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
+import * as Crypto from "expo-crypto";
 import {
   emptyData,
   type AppData,
@@ -18,6 +19,10 @@ import {
   type TraceEvent,
 } from "../../packages/contracts/types";
 import { ConversationOrchestrator } from "../../packages/pipeline/ConversationOrchestrator";
+import {
+  createSavedChatsLock,
+  verifySavedChatsPassword,
+} from "../../packages/security/savedChatsPasscode.ts";
 import {
   deleteConversation,
   forgetMemory,
@@ -42,12 +47,13 @@ export default function App() {
     [page, setPage] = useState("Home");
   const [draft, setDraft] = useState(""),
     [messages, setMessages] = useState<Message[]>([]),
+    [pendingConversation, setPendingConversation] =
+      useState<Conversation>(),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState(""),
-    [progress, setProgress] = useState("");
+    [error, setError] = useState("");
   const [connection, setConnection] = useState("Disconnected"),
     [modelStatus, setModelStatus] = useState(
-      "No verified model loaded. Structured support works without it.",
+      "Qwen is not connected. Deterministic replies remain active.",
     );
   const vault = useMemo(() => new Vault(), []),
     model = useMemo(() => new LocalModel(), []),
@@ -62,10 +68,6 @@ export default function App() {
   const emit = (event: TraceEvent) => {
     traces.current = [...traces.current, event].slice(-1000);
     monitor.send(event);
-    if (event.layer === "coverage")
-      setProgress(
-        `Reading your whole message… ${event.details.processed}/${event.details.total} sections`,
-      );
   };
   const engine = useMemo(
     () => new ConversationOrchestrator(emit, model),
@@ -97,6 +99,23 @@ export default function App() {
         dataRef.current = next;
         setData(next);
         setLocked(false);
+        if (Platform.OS !== "web" && model.autoConnect) {
+          setModelStatus("Connecting the previously imported local model…");
+          void model
+            .autoConnect()
+            .then((connected) =>
+              setModelStatus(
+                connected
+                  ? `${model.modelName.startsWith("qwen3") ? "Qwen3 4B" : "Local model"} connected automatically and ready.`
+                  : "No imported local model found. Deterministic replies remain active.",
+              ),
+            )
+            .catch(() =>
+              setModelStatus(
+                "The saved local model could not start. Deterministic replies remain active.",
+              ),
+            );
+        }
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to unlock");
@@ -113,12 +132,12 @@ export default function App() {
         setBusy(false);
         setLocked(true);
         setMessages([]);
+        setPendingConversation(undefined);
         setDraft("");
         setTurnGoal(undefined);
         setError("");
-        setProgress("");
         setModelStatus(
-          "Model unloaded when the app locked. Structured support remains available.",
+          "The local model disconnected when MindVault locked. Deterministic replies remain active.",
         );
         setData(emptyData());
         dataRef.current = emptyData();
@@ -171,35 +190,17 @@ export default function App() {
         },
       ];
       setMessages(nextMessages);
-      let saved = false;
-      if (dataRef.current.preferences.saveHistory) {
-        const conversation: Conversation = {
-          id: conversationId.current,
-          title: nextMessages[0].text.slice(0, 55),
-          messages: nextMessages,
-          updatedAt: new Date().toISOString(),
-        };
-        saved = await persist({
-          ...dataRef.current,
-          conversations: [
-            conversation,
-            ...dataRef.current.conversations.filter(
-              (c) => c.id !== conversation.id,
-            ),
-          ],
-        });
-      }
       emit({
         traceId: result.traceId,
         sequence: result.nextSequence,
         timestamp: new Date().toISOString(),
         layer: "storage",
-        status: dataRef.current.preferences.saveHistory
-          ? saved
-            ? "completed"
-            : "failed"
-          : "skipped",
-        details: { saved, persistent: vault.persistent },
+        status: "skipped",
+        details: {
+          saved: false,
+          persistent: vault.persistent,
+          action: "manual-save-required",
+        },
       });
     } catch (e) {
       if (turn === generation.current) {
@@ -211,24 +212,61 @@ export default function App() {
     } finally {
       if (turn === generation.current) {
         setBusy(false);
-        setProgress("");
       }
     }
   };
   const stop = () => {
     engine.cancel();
   };
-  const newConversation = () => {
-    generation.current++;
-    engine.reset();
-    setMessages([]);
-    setDraft("");
-    setBusy(false);
-    conversationId.current = id();
+  const currentConversation = (): Conversation | undefined =>
+    messages.length
+      ? {
+          id: conversationId.current,
+          title: messages[0].text.slice(0, 55),
+          messages: [...messages],
+          updatedAt: new Date().toISOString(),
+        }
+      : undefined;
+  const upsertConversation = async (conversation: Conversation) =>
+    persist({
+      ...dataRef.current,
+      conversations: [
+        conversation,
+        ...dataRef.current.conversations.filter(
+          (item) => item.id !== conversation.id,
+        ),
+      ],
+    });
+  const createSavedPassword = async (password: string) => {
+    const salt = Array.from(Crypto.getRandomBytes(16), (byte) =>
+      byte.toString(16).padStart(2, "0"),
+    ).join("");
+    const savedChatsLock = await createSavedChatsLock(password, salt);
+    return persist({ ...dataRef.current, savedChatsLock });
   };
-  const removeAll = async () => {
+  const verifySavedPassword = (password: string) => {
+    const savedChatsLock = dataRef.current.savedChatsLock;
+    return savedChatsLock
+      ? verifySavedChatsPassword(password, savedChatsLock)
+      : Promise.resolve(false);
+  };
+  const savePending = async () => {
+    const conversation = pendingConversation;
+    if (!conversation || !dataRef.current.savedChatsLock) return false;
+    const saved = await upsertConversation(conversation);
+    if (saved) setPendingConversation(undefined);
+    return saved;
+  };
+  const removeAll = async (password?: string) => {
     try {
-      if (!(await vault.unlock())) return;
+      if (
+        dataRef.current.savedChatsLock &&
+        !(password && (await verifySavedPassword(password)))
+      ) {
+        setError("Enter the saved-chats password before deleting local data.");
+        return false;
+      }
+      if (!(await vault.unlock())) return false;
       generation.current++;
       engine.reset();
       monitor.disconnect();
@@ -238,14 +276,17 @@ export default function App() {
       setData(emptyData());
       dataRef.current = emptyData();
       setMessages([]);
+      setPendingConversation(undefined);
       setDraft("");
       setLocked(true);
       setBusy(false);
       conversationId.current = id();
+      return true;
     } catch {
       setError(
         "Deletion did not complete. Please retry before closing the app.",
       );
+      return false;
     }
   };
   return (
@@ -307,7 +348,12 @@ export default function App() {
             </ScrollView>
           ) : (
             <>
-              {page === "Home" && <HomeScreen open={setPage} />}
+              {page === "Home" && (
+                <HomeScreen
+                  open={setPage}
+                  savedCount={data.conversations.length}
+                />
+              )}
               {page === "Voice" && (
                 <ScrollView contentContainerStyle={ui.content}>
                   <Text style={ui.title}>Your voice belongs here, too.</Text>
@@ -334,9 +380,15 @@ export default function App() {
                   setDraft={setDraft}
                   send={send}
                   busy={busy}
-                  progress={progress}
                   stop={stop}
                   help={() => setPage("Help")}
+                  modelName={model.modelName ?? "Local model"}
+                  saveChat={() => {
+                    const conversation = currentConversation();
+                    if (!conversation) return;
+                    setPendingConversation(conversation);
+                    setPage("Saved chats");
+                  }}
                 />
               )}
               {page === "Check-in" && (
@@ -348,11 +400,16 @@ export default function App() {
                   }}
                 />
               )}
-              {page === "Journal" && (
+              {page === "Saved chats" && (
                 <HistoryScreen
                   conversations={data.conversations}
+                  lock={data.savedChatsLock}
+                  pendingConversation={pendingConversation}
+                  persistent={vault.persistent}
+                  onCreatePassword={createSavedPassword}
+                  onVerifyPassword={verifySavedPassword}
+                  onSavePending={savePending}
                   onDelete={(cid) => {
-                    newConversation();
                     void persist(deleteConversation(dataRef.current, cid));
                   }}
                   onExport={(c) => {
@@ -398,9 +455,13 @@ export default function App() {
                   importModel={(sessionToken) => {
                     void model
                       .importFile(sessionToken)
-                      .then(() =>
-                        setModelStatus("Verified model loaded locally"),
-                      )
+                      .then(() => {
+                        setModelStatus(
+                          model.modelName.startsWith("qwen3")
+                            ? "Qwen3 4B is connected locally and ready for eligible replies."
+                            : "The verified local model is connected and ready.",
+                        );
+                      })
                       .catch((e) => setModelStatus(e.message));
                   }}
                   onHelp={() => setPage("Help")}
@@ -408,7 +469,7 @@ export default function App() {
               )}
               {page === "Help" && <HelpScreen />}
               <View style={ui.nav}>
-                {["Home", "Companion", "Check-in", "Journal", "Settings"].map(
+                {["Home", "Companion", "Check-in", "Saved chats", "Settings"].map(
                   (item) => (
                     <Pressable
                       accessibilityRole="tab"

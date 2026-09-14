@@ -7,10 +7,25 @@ const testFiles = fs
   .readdirSync(path.join(root, "tests"))
   .filter((name) => name.endsWith(".test.ts"))
   .map((name) => path.join("tests", name));
+const userShim = path.join(root, "scripts", "windows-node-user-shim.cjs");
+const nodeOptions = [process.env.NODE_OPTIONS, `--require=${userShim}`]
+  .filter(Boolean)
+  .join(" ");
 const child = spawn(
   process.execPath,
-  [require.resolve("tsx/cli"), "--test", "--test-reporter=tap", ...testFiles],
-  { cwd: root, stdio: ["inherit", "pipe", "inherit"] },
+  [
+    "--require",
+    userShim,
+    require.resolve("tsx/cli"),
+    "--test",
+    "--test-reporter=tap",
+    ...testFiles,
+  ],
+  {
+    cwd: root,
+    stdio: ["inherit", "pipe", "inherit"],
+    env: { ...process.env, NODE_OPTIONS: nodeOptions },
+  },
 );
 let output = "";
 child.stdout.on("data", (chunk) => {

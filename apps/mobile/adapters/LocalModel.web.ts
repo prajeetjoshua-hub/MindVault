@@ -9,6 +9,9 @@ export class LocalModel implements ModelAdapter {
   ready() {
     return Boolean(this.token);
   }
+  async autoConnect() {
+    return false;
+  }
   async generate(request: ModelRequest): Promise<string> {
     if (!this.token) throw new Error("Desktop conversation model is not connected");
     request.signal.throwIfAborted();

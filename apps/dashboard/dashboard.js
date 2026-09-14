@@ -117,8 +117,10 @@ async function poll() {
       cursor = data.counter;
       render();
     }
-    $("connection").textContent =
-      "Local monitor connected · waiting for device events";
+    const traceCount = new Set(all.map((event) => event.traceId)).size;
+    $("connection").textContent = traceCount
+      ? `Local monitor connected · ${traceCount} message trace${traceCount === 1 ? "" : "s"} received`
+      : "Local monitor connected · waiting for device events";
   } catch (e) {
     $("connection").textContent = e.message;
   }

@@ -20,7 +20,7 @@ The black-and-green webpage places the working phone demo on the left and explai
 
 ## Local Quiet Forest prototype
 
-The new functional prototype includes typed conversations, guided check-in, preferences, opt-in session history, export, memory controls, experimental deterministic routing and a separate live pipeline dashboard. Desktop regression tests cover routing, long-message processing, cancellation, model fallback and diagnostic authentication. Passing these tests is not clinical validation.
+The functional prototype includes typed conversations, guided check-in, preferences, manually saved password-protected chats, export, memory controls, visible deterministic/Qwen reply labels, experimental deterministic routing and a separate live pipeline dashboard. Desktop regression tests cover routing, long-message processing, cancellation, model fallback, saved-chat password verification and diagnostic authentication. Passing these tests is not clinical validation.
 
 ```sh
 npm ci

@@ -16,7 +16,7 @@ Not implemented or not ready for release: offline speech transcription, automati
 
 | Layer | File / responsibility |
 |---|---|
-| Presentation | `apps/mobile/screens`: Home, Companion, Check-in, Journal/history, Settings, Help; styles in dedicated files or shared `ui.styles.ts` |
+| Presentation | `apps/mobile/screens`: Home, Companion, Check-in, password-protected Saved chats, Settings, Help; styles in dedicated files or shared `ui.styles.ts` |
 | Consent/preferences | First-entry explanation, history off by default, explicit memory entry, response length/tone/goal, optional diagnostic pairing |
 | Input adapter | Typed text; check-in composes an editable draft; voice is explicitly unavailable |
 | Normalisation | `packages/normalisation`: Unicode NFKC, punctuation and case; no message truncation |
