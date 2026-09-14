@@ -238,7 +238,7 @@ export function SettingsScreen(p: Props) {
             <Text style={ui.small}>
               {Platform.OS === "web"
                 ? "Connect a verified local runtime on this computer. "
-                : "Official Q4_0 artifact. Import only after accepting its licence. "}
+                : "Import the approved Qwen Q4_K_M artifact after accepting its licence. "}
               No cloud fallback. Model availability does not mean clinically
               validated output.
             </Text>
@@ -322,8 +322,9 @@ export function SettingsScreen(p: Props) {
             </>
           )}
           <Text style={ui.small}>
-            Native connections require trusted HTTPS. Loopback HTTP is allowed
-            only for this computer’s browser preview.
+            Phone connections require trusted HTTPS and a shared local network.
+            The pairing credential is protected by the device and can be
+            removed with Disconnect dashboard.
           </Text>
         </>
       )}

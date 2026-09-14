@@ -32,7 +32,9 @@ Open `http://localhost:8082/`. In a second terminal run `npm run dashboard`, the
 
 The desktop Qwen launcher uses a single request slot, quantised key/value caches and skips model warm-up to reduce memory pressure. If the local runtime stops or restarts, the prototype removes the stale connection instead of continuing to show **QWEN CONNECTED**. Deterministic support remains available, and an unmatched message receives a warm authored fallback without exposing model or runtime details.
 
-Native authentication, encrypted storage and local-model adapters are written but still require an Android build and device testing. **Offline voice is not enabled.** Phone testing targets a Samsung F15 with Android 16 and 6 GB RAM. The native prototype requires a development or standalone build, not Expo Go.
+An ARM64 standalone Android release APK has been built with the functional UI, native authentication, encrypted SQLCipher storage, local-model runtime and screenshot/recents protection. Physical-device behavior still requires testing on the Samsung F15 with Android 16 and 6 GB RAM. **Offline voice is not enabled.** This native prototype does not use Expo Go.
+
+Use `npm run android:apk` from the short Desktop checkout to create `build-artifacts/MindVault-android-arm64.apk`. Follow [the Android install, Qwen import, HTTPS dashboard and airplane-mode test guide](docs/ANDROID-DEVICE-SETUP.md).
 
 See [the architecture, model artifact, limitations and run instructions](docs/FUNCTIONAL-PROTOTYPE.md). Use `npm run prototype:export` for a static functional browser build; the existing website export remains separate.
 
@@ -95,7 +97,7 @@ app.config.js                 GitHub Pages production base path
 docs/live-demo-qr.png          Permanent live-demo QR
 ```
 
-Dependencies are pinned by package-lock.json. Desktop use needs no cloud service keys. Native device QA, trusted phone-to-dashboard HTTPS setup, model licence access and clinical evaluation remain pending.
+Dependencies are pinned by package-lock.json. Desktop use needs no cloud service keys. The trusted phone-to-dashboard HTTPS tooling is implemented; certificate installation and physical-device QA remain pending. Model licence access and clinical evaluation remain separate requirements.
 
 ## Website publishing
 

@@ -34,8 +34,11 @@
   },
   "scripts": {
     "start": "expo start",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
+    "android": "expo run:android",
+    "android:prepare": "expo prebuild --platform android --no-install",
+    "android:apk": "node scripts/build-android.cjs",
+    "android:apk:debug": "node scripts/build-android.cjs --debug",
+    "ios": "expo run:ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "export:web": "node scripts/export-public.cjs",
@@ -44,6 +47,7 @@
     "prototype:web": "node scripts/start-prototype.cjs --web",
     "prototype:export": "node scripts/export-prototype.cjs",
     "dashboard": "node tools/monitor-service/server.mjs",
+    "dashboard:phone": "node scripts/start-phone-dashboard.mjs",
     "model:desktop": "node scripts/start-local-model.mjs"
   },
   "private": true,

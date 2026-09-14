@@ -38,9 +38,15 @@ export class LocalModel implements ModelAdapter {
     const context = await initLlama({
       model: destination.uri,
       n_ctx: 4096,
-      n_threads: 2,
+      n_batch: 256,
+      n_ubatch: 128,
+      n_parallel: 1,
+      n_threads: 4,
       n_gpu_layers: 0,
+      cache_type_k: "q8_0",
+      cache_type_v: "q8_0",
       use_mmap: true,
+      no_extra_bufts: true,
     });
     if (epoch !== this.epoch) {
       await context.release();

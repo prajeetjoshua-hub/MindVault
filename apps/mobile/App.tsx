@@ -11,6 +11,7 @@ import {
 import { SafeAreaProvider, SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 import * as Crypto from "expo-crypto";
+import * as SecureStore from "expo-secure-store";
 import {
   emptyData,
   type AppData,
@@ -46,6 +47,7 @@ import { Button } from "./components/Button";
 import { ui } from "./components/ui.styles";
 import { installWebTheme } from "./theme/installWebTheme";
 const id = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
+const DASHBOARD_PAIRING_KEY = "mindvault-dashboard-pairing-v1";
 export default function App() {
   useEffect(() => {
     if (Platform.OS === "web") installWebTheme();
@@ -187,6 +189,15 @@ export default function App() {
               ),
             );
         }
+        if (Platform.OS !== "web") {
+          void SecureStore.getItemAsync(DASHBOARD_PAIRING_KEY)
+            .then((pairing) => {
+              if (pairing) monitor.connect(pairing);
+            })
+            .catch(() =>
+              setConnection("Saved dashboard pairing could not be restored"),
+            );
+        }
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to unlock");
@@ -203,7 +214,7 @@ export default function App() {
       if (state === "background") {
         generation.current++;
         engine.reset();
-        monitor.disconnect();
+        monitor.disconnect(false);
         traces.current = [];
         conversationId.current = id();
         setBusy(false);
@@ -226,7 +237,7 @@ export default function App() {
     return () => {
       sub.remove();
       engine.reset();
-      monitor.disconnect();
+      monitor.disconnect(false);
       void model.release();
     };
   }, [engine, monitor, vault, model]);
@@ -357,6 +368,8 @@ export default function App() {
       generation.current++;
       engine.reset();
       monitor.disconnect();
+      if (Platform.OS !== "web")
+        await SecureStore.deleteItemAsync(DASHBOARD_PAIRING_KEY);
       await model.release();
       await vault.destroy();
       traces.current = [];
@@ -539,6 +552,15 @@ export default function App() {
                   connect={(json) => {
                     try {
                       monitor.connect(json);
+                      if (Platform.OS !== "web")
+                        void SecureStore.setItemAsync(
+                          DASHBOARD_PAIRING_KEY,
+                          json.trim(),
+                          {
+                            keychainAccessible:
+                              SecureStore.WHEN_UNLOCKED_THIS_DEVICE_ONLY,
+                          },
+                        );
                       setError("");
                       return true;
                     } catch (e) {
@@ -548,7 +570,11 @@ export default function App() {
                       return false;
                     }
                   }}
-                  disconnect={() => monitor.disconnect()}
+                  disconnect={() => {
+                    monitor.disconnect();
+                    if (Platform.OS !== "web")
+                      void SecureStore.deleteItemAsync(DASHBOARD_PAIRING_KEY);
+                  }}
                   connection={connection}
                   modelStatus={modelStatus}
                   modelReady={model.ready()}

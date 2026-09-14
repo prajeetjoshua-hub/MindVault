@@ -53,3 +53,4 @@ models/
 *.pfx
 *.crt
 .runtime/
+/build-artifacts/

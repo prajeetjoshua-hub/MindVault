@@ -10,7 +10,10 @@
       "bundleIdentifier": "com.prajeetjoshuahub.mindvault"
     },
     "android": {
-      "package": "com.prajeetjoshuahub.mindvault"
+      "package": "com.prajeetjoshuahub.mindvault",
+      "blockedPermissions": [
+        "android.permission.SYSTEM_ALERT_WINDOW"
+      ]
     },
     "web": {
       "name": "MindVault",

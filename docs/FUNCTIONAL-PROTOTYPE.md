@@ -10,7 +10,7 @@ Implemented for desktop verification: home and animated squirrel, typed conversa
 
 Written but **not yet verified on Android**: system authentication, SQLCipher vault, secure key storage, native sharing, verified model import and native inference adapter. The desktop browser uses volatile memory and can connect only to the loopback local model bridge; it does not claim to demonstrate native encryption or phone inference.
 
-Not implemented or not ready for release: offline speech transcription, automatic reload of an imported model after locking, QR scanning for pairing, trusted local-network certificate setup, comprehensive language understanding, clinically reviewed policy/support content, validated teenager suitability, broader regional help coverage, and device benchmarks. Model import is currently repeated after unloading; lifecycle handling around the system picker needs phone testing.
+Not implemented or not ready for release: offline speech transcription, QR scanning for pairing, comprehensive language understanding, clinically reviewed policy/support content, validated teenager suitability, broader regional help coverage, and device benchmarks. The Android adapter now reconnects to a previously imported verified model after phone-owner authentication. Trusted local-network certificate generation is implemented, but certificate installation, model lifecycle and the system picker still need phone testing.
 
 ## Sequential layers
 
@@ -78,7 +78,7 @@ The adapter checks size and streams SHA-256 before loading. It checks prompt tok
 
 Android uses system authentication with device-credential fallback; the app never reads the phone password. A random 256-bit database key is kept in SecureStore. SQLCipher availability is checked before the vault opens, so plain SQLite does not silently substitute for encryption. App backgrounding clears displayed conversation state and orchestrator context, closes storage, stops generation and disconnects diagnostics.
 
-The Android configuration disables backups and cleartext traffic. These settings, authentication cancellation, lifecycle races, backup behaviour, screenshots/recents protection and device-key security must still be tested on a real build. The current application-level authentication gate is not proof that the key itself requires fresh hardware authentication on every access. iOS is not a verified target.
+The Android configuration disables backups and cleartext traffic, blocks screenshots/recents and removes the overlay permission. The release app trusts system CAs plus a user-installed CA so the explicitly paired local HTTPS dashboard can work without internet. The generated demo CA is short-lived and its private key stays in ignored laptop storage. Authentication cancellation, lifecycle races, backup behaviour, certificate removal and device-key security must still be tested on the Samsung. The current application-level authentication gate is not proof that the key itself requires fresh hardware authentication on every access. iOS is not a verified target.
 
 Chat export is deliberately readable and requires a preview/confirmation. Native export reauthenticates and removes its temporary share file when sharing finishes; crash-recovery cleanup still needs verification. User-shared copies cannot be recalled by deleting app memory. A public model file is not personal memory and is not currently removed by whole-vault deletion.
 
@@ -118,11 +118,11 @@ Open `http://localhost:8082/` and the **private dashboard URL printed by the loc
 
 `npm run prototype:export` creates `prototype-dist/`; `npm run export:web` still exports the existing public landing. A release intended to work in airplane mode must be a bundled native build, not either browser preview.
 
-For later Android build work, install the Android toolchain and connect the phone, then use PowerShell:
+For the Android prototype, use the short Desktop checkout and run:
 
 ```powershell
-$env:EXPO_PUBLIC_APP_VARIANT = 'prototype'
-npx expo run:android --variant release
+npm run android:prepare
+npm run android:apk
 ```
 
-This is a local test build, not a store release. Native dependency and phone acceptance checks are prerequisites before publishing an installable app or changing the public landing button to “Download app.”
+The ARM64 release APK has been produced and inspected, but it uses the generated debug signing identity for local sideloading. Follow `docs/ANDROID-DEVICE-SETUP.md`. Phone acceptance checks are prerequisites before publishing an installable app or changing the public landing button to “Download app.”

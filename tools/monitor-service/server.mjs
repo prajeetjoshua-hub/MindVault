@@ -205,6 +205,14 @@ const server = (tls ? https : http).createServer(
       "/dashboard.js": "dashboard.js",
       "/dashboard.css": "dashboard.css",
     };
+    if (url.pathname === "/mindvault-local-ca.crt" && process.env.MONITOR_CA) {
+      res.writeHead(200, {
+        "Content-Type": "application/x-x509-ca-cert",
+        "Content-Disposition": 'attachment; filename="mindvault-local-ca.crt"',
+      });
+      fs.createReadStream(process.env.MONITOR_CA).pipe(res);
+      return;
+    }
     const file = routes[url.pathname];
     if (!file) {
       res.writeHead(404);
