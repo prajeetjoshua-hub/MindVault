@@ -2,9 +2,15 @@ const $ = (id) => document.getElementById(id);
 const fromHash = new URLSearchParams(location.hash.slice(1)).get("session");
 if (fromHash) {
   sessionStorage.setItem("monitor-session", fromHash);
+  // Make another dashboard tab in this browser reuse the current local session.
+  // The monitor rejects this value after it restarts.
+  localStorage.setItem("monitor-session", fromHash);
   history.replaceState(null, "", location.pathname);
 }
-const session = sessionStorage.getItem("monitor-session");
+const session =
+  sessionStorage.getItem("monitor-session") ||
+  localStorage.getItem("monitor-session");
+if (session) sessionStorage.setItem("monitor-session", session);
 let all = [],
   cursor = 0,
   selected = "",
@@ -89,6 +95,9 @@ $("pair").onclick = async () => {
       ? "Trusted HTTPS configured. Use a phone on the same local network."
       : "Desktop browser pairing only. Configure trusted HTTPS before pairing a phone.";
   } catch (e) {
+    $("pairing").hidden = false;
+    $("pairData").value = "";
+    $("pairNote").textContent = e.message;
     $("connection").textContent = e.message;
   }
 };
@@ -136,6 +145,11 @@ async function poll() {
     $("connection").textContent = e.message;
   }
   setTimeout(poll, 1000);
+}
+if (!session) {
+  $("pairing").hidden = false;
+  $("pairNote").textContent =
+    "This dashboard tab is not authenticated. Open the complete private dashboard link printed in the dashboard log, then try again.";
 }
 poll();
 async function testReport() {
