@@ -10,8 +10,32 @@ export class MonitorClient {
     private onStatus: (message: string) => void,
   ) {}
   connect(json: string) {
-    const parsed = JSON.parse(json);
-    const url = new URL(parsed.url);
+    const value = json.trim();
+    if (!value)
+      throw new Error(
+        "Paste the pairing configuration copied from the dashboard.",
+      );
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(value);
+    } catch {
+      throw new Error(
+        "The pairing configuration is incomplete. On the dashboard, press Pair a device and then Copy pairing configuration.",
+      );
+    }
+    if (
+      !parsed ||
+      typeof parsed !== "object" ||
+      !("url" in parsed) ||
+      typeof parsed.url !== "string"
+    )
+      throw new Error("The pairing configuration does not contain a valid URL.");
+    let url: URL;
+    try {
+      url = new URL(parsed.url);
+    } catch {
+      throw new Error("The pairing configuration contains an invalid URL.");
+    }
     const loopback = ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
     if (
       url.protocol !== "https:" &&
@@ -21,6 +45,7 @@ export class MonitorClient {
         "Use trusted HTTPS for a phone connection. HTTP is only allowed for the desktop loopback preview.",
       );
     if (
+      !("token" in parsed) ||
       typeof parsed.token !== "string" ||
       !/^[a-f0-9]{64}$/.test(parsed.token)
     )

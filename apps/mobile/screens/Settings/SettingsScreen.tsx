@@ -14,7 +14,7 @@ type Props = {
   addMemory: (text: string) => void;
   forget: (id: string) => void;
   deleteAll: (password?: string) => Promise<boolean>;
-  connect: (json: string) => void;
+  connect: (json: string) => boolean;
   disconnect: () => void;
   connection: string;
   modelStatus: string;
@@ -274,8 +274,7 @@ export function SettingsScreen(p: Props) {
           <Button
             title="Pair dashboard"
             onPress={() => {
-              p.connect(pairing);
-              setPairing("");
+              if (p.connect(pairing)) setPairing("");
             }}
           />
           <Button title="Disconnect" secondary onPress={p.disconnect} />

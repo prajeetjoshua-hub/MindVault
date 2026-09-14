@@ -92,6 +92,17 @@ $("pair").onclick = async () => {
     $("connection").textContent = e.message;
   }
 };
+$("copyPair").onclick = async () => {
+  const field = $("pairData");
+  try {
+    await navigator.clipboard.writeText(field.value);
+    $("copyPair").textContent = "Copied — paste it in MindVault";
+  } catch {
+    field.focus();
+    field.select();
+    $("copyPair").textContent = "Selected — press Ctrl+C";
+  }
+};
 $("clear").onclick = async () => {
   await api("events", "DELETE");
   all = [];

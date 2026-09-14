@@ -448,10 +448,13 @@ export default function App() {
                   connect={(json) => {
                     try {
                       monitor.connect(json);
+                      setError("");
+                      return true;
                     } catch (e) {
-                      setError(
+                      setConnection(
                         e instanceof Error ? e.message : "Unable to pair",
                       );
+                      return false;
                     }
                   }}
                   disconnect={() => monitor.disconnect()}
