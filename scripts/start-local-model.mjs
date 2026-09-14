@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import crypto from "node:crypto";
+import os from "node:os";
 import { spawn } from "node:child_process";
 import { createBridge } from "../tools/local-model/bridge.mjs";
 
@@ -30,6 +31,7 @@ if (hash.digest("hex") !== expectedHash)
   throw new Error("Model integrity check failed");
 const runtimeKey = crypto.randomBytes(32).toString("hex");
 const token = crypto.randomBytes(32).toString("hex");
+const threads = String(Math.max(4, Math.min(8, os.availableParallelism())));
 const child = spawn(
   executable,
   [
@@ -42,14 +44,11 @@ const child = spawn(
     "-c",
     "4096",
     "-t",
-    "4",
+    threads,
     "-tb",
-    "4",
-    "--cache-ram",
-    "0",
+    threads,
     "-np",
     "1",
-    "--no-cache-prompt",
     "--log-disable",
   ],
   {

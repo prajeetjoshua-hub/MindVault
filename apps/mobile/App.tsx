@@ -30,6 +30,11 @@ import {
 import { MonitorClient } from "../../packages/diagnostics/MonitorClient";
 import { Vault } from "./adapters/Vault";
 import { LocalModel } from "./adapters/LocalModel";
+import {
+  clearSessionState,
+  loadSessionState,
+  saveSessionState,
+} from "./adapters/SessionState";
 import { exportChat } from "./adapters/exportChat";
 import { CompanionScreen } from "./screens/Companion/CompanionScreen";
 import { HomeScreen } from "./screens/Home/HomeScreen";
@@ -46,16 +51,22 @@ export default function App() {
     if (Platform.OS === "web") installWebTheme();
   }, []);
 
-  const [turnGoal, setTurnGoal] = useState<AppData["preferences"]["goal"]>();
-  const [locked, setLocked] = useState(true),
+  const restored = useMemo(loadSessionState, []);
+  const [turnGoal, setTurnGoal] = useState<
+    AppData["preferences"]["goal"] | undefined
+  >(restored.turnGoal);
+  const [locked, setLocked] = useState(!(restored.entered ?? false)),
     [data, setData] = useState<AppData>(emptyData),
-    [page, setPage] = useState("Home");
-  const [draft, setDraft] = useState(""),
-    [messages, setMessages] = useState<Message[]>([]),
+    [page, setPage] = useState(restored.page ?? "Home");
+  const [draft, setDraft] = useState(restored.draft ?? ""),
+    [messages, setMessages] = useState<Message[]>(restored.messages ?? []),
     [pendingConversation, setPendingConversation] =
-      useState<Conversation>(),
+      useState<Conversation | undefined>(restored.pendingConversation),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
+  const [savedChatsUnlocked, setSavedChatsUnlocked] = useState(
+    restored.savedChatsUnlocked ?? false,
+  );
   const [connection, setConnection] = useState("Disconnected"),
     [modelStatus, setModelStatus] = useState(
       "Qwen is not connected. Deterministic replies remain active.",
@@ -78,6 +89,33 @@ export default function App() {
     () => new ConversationOrchestrator(emit, model),
     [model, monitor],
   );
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    if (restored.messages?.length) engine.restore(restored.messages);
+    void vault.load().then((next) => {
+      dataRef.current = next;
+      setData(next);
+    });
+    monitor.restore?.();
+    if (model.autoConnect) {
+      void model.autoConnect().then((connected) => {
+        if (connected)
+          setModelStatus("Qwen3 4B is connected locally and ready.");
+      });
+    }
+  }, [engine, model, monitor, vault]);
+  useEffect(() => {
+    if (Platform.OS !== "web") return;
+    saveSessionState({
+      entered: !locked,
+      page,
+      draft,
+      messages,
+      pendingConversation,
+      turnGoal,
+      savedChatsUnlocked,
+    });
+  }, [locked, page, draft, messages, pendingConversation, turnGoal, savedChatsUnlocked]);
   useEffect(() => {
     if (Platform.OS !== "web" || typeof location === "undefined") return;
     const pairing = new URLSearchParams(location.hash.slice(1)).get("dashboard");
@@ -138,6 +176,12 @@ export default function App() {
     }
   };
   useEffect(() => {
+    if (Platform.OS === "web")
+      return () => {
+        engine.cancel();
+        monitor.disconnect(false);
+        void model.release();
+      };
     const sub = AppState.addEventListener("change", (state) => {
       if (state === "background") {
         generation.current++;
@@ -151,6 +195,7 @@ export default function App() {
         setPendingConversation(undefined);
         setDraft("");
         setTurnGoal(undefined);
+        setSavedChatsUnlocked(false);
         setError("");
         setModelStatus(
           "The local model disconnected when MindVault locked. Deterministic replies remain active.",
@@ -277,6 +322,7 @@ export default function App() {
     try {
       if (
         dataRef.current.savedChatsLock &&
+        !savedChatsUnlocked &&
         !(password && (await verifySavedPassword(password)))
       ) {
         setError("Enter the saved-chats password before deleting local data.");
@@ -296,6 +342,8 @@ export default function App() {
       setDraft("");
       setLocked(true);
       setBusy(false);
+      setSavedChatsUnlocked(false);
+      clearSessionState();
       conversationId.current = id();
       return true;
     } catch {
@@ -322,7 +370,7 @@ export default function App() {
           {Platform.OS === "web" && (
             <View style={ui.banner}>
               <Text style={ui.small}>
-                Desktop functional preview · session memory only · native
+                Desktop functional preview · browser-session storage · native
                 features unavailable
               </Text>
             </View>
@@ -349,7 +397,7 @@ export default function App() {
                 </Text>
                 <Text style={ui.body}>
                   {Platform.OS === "web"
-                    ? "Use invented scenarios here. This preview does not store your conversation after reload."
+                    ? "Use invented scenarios here. Your current chat and draft remain while this browser tab is open, including after a reload. Closing the tab clears the session."
                     : "Your phone verifies access. MindVault never sees your phone password. A native build with SQLCipher is required."}
                 </Text>
               </View>
@@ -402,6 +450,11 @@ export default function App() {
                   saveChat={() => {
                     const conversation = currentConversation();
                     if (!conversation) return;
+                    if (savedChatsUnlocked && dataRef.current.savedChatsLock) {
+                      void upsertConversation(conversation);
+                      setPage("Saved chats");
+                      return;
+                    }
                     setPendingConversation(conversation);
                     setPage("Saved chats");
                   }}
@@ -422,6 +475,8 @@ export default function App() {
                   lock={data.savedChatsLock}
                   pendingConversation={pendingConversation}
                   persistent={vault.persistent}
+                  unlocked={savedChatsUnlocked}
+                  onUnlocked={() => setSavedChatsUnlocked(true)}
                   onCreatePassword={createSavedPassword}
                   onVerifyPassword={verifySavedPassword}
                   onSavePending={savePending}
@@ -471,6 +526,7 @@ export default function App() {
                   disconnect={() => monitor.disconnect()}
                   connection={connection}
                   modelStatus={modelStatus}
+                  modelReady={model.ready()}
                   importModel={(sessionToken) => {
                     void model
                       .importFile(sessionToken)

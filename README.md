@@ -20,7 +20,7 @@ The black-and-green webpage places the working phone demo on the left and explai
 
 ## Local Quiet Forest prototype
 
-The functional prototype includes typed conversations, guided check-in, preferences, manually saved password-protected chats, export, memory controls, visible deterministic/Qwen reply labels, experimental deterministic routing and a separate live pipeline dashboard. Desktop regression tests cover routing, long-message processing, cancellation, model fallback, saved-chat password verification and diagnostic authentication. Passing these tests is not clinical validation.
+The functional prototype includes typed conversations, guided check-in, preferences, manually saved four-digit-PIN-protected chats, export, memory controls, visible deterministic/Qwen reply labels, experimental deterministic routing and a separate live pipeline dashboard. Desktop regression tests cover routing, long-message processing, cancellation, model fallback, saved-chat PIN verification and diagnostic authentication. Passing these tests is not clinical validation.
 
 ```sh
 npm ci
@@ -28,7 +28,7 @@ npm test
 npm run prototype:web
 ```
 
-Open `http://localhost:8082/`. In a second terminal run `npm run dashboard`, then open the private local URL it prints. Pair through **Settings → Demo connection** to see actual trace events and score contributions. Do not publish session tokens. The browser prototype keeps conversation data in memory only.
+Open `http://localhost:8082/`. In a second terminal run `npm run dashboard`, then open the private local URL it prints. Press **Pair a device**, copy the visible JSON configuration, and paste it into **Settings → Demo connection**. The dashboard shows the local test message, receipt time, actual trace events and score contributions in memory. Do not publish session tokens. The browser prototype uses tab-scoped session storage so chat, drafts, saved chats and connections survive tab switches and reloads; closing the tab clears that session.
 
 Native authentication, encrypted storage and local-model adapters are written but still require an Android build and device testing. **Offline voice is not enabled.** Phone testing targets a Samsung F15 with Android 16 and 6 GB RAM. The native prototype requires a development or standalone build, not Expo Go.
 

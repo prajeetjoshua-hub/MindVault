@@ -80,6 +80,10 @@ button {
 button:hover {
   filter: brightness(1.1);
 }
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
 button.secondary {
   background: #223428;
   color: #dce9d5;
@@ -204,6 +208,17 @@ textarea {
   border-radius: 10px;
   padding: 12px;
   resize: vertical;
+}
+.message-preview {
+  margin: 14px 0;
+  padding: 14px 16px;
+  color: #efffdc;
+  background: #193522;
+  border: 1px solid #6f9a59;
+  border-radius: 12px;
+  font-weight: 700;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
 }
 @media (max-width: 850px) {
   .intro {

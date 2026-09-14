@@ -26,6 +26,11 @@ export const supportRules = [
 ];
 export const safetyRules = [
   {
+    id: "emergency-help",
+    pattern:
+      /\b(?:sos|emergency(?:\s+(?:help|support))?|(?:help|support)\s+(?:me\s+)?(?:now|urgently|emergency))\b/g,
+  },
+  {
     id: "current-harm",
     pattern: /\b(?:i\s+(?:(?:will|'ll|ll)\s+)?(?:better\s+)?(?:go\s+)?die|(?:wanna|want to|want 2)\s+die|better\s+(?:go\s+)?die)\b/g,
   },

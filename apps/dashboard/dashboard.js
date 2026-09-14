@@ -39,9 +39,19 @@ function render() {
   if (!selected) selected = ids[0] || "";
   $("traces").replaceChildren(
     ...ids.map((id) => {
+      const input = all.find((e) => e.traceId === id && e.layer === "input");
+      const time = input
+        ? new Date(input.timestamp).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          })
+        : "waiting";
+      const message = String(input?.details?.message || "Processing…");
+      const preview = message.length > 34 ? `${message.slice(0, 34)}…` : message;
       const b = node(
         "button",
-        `${id.slice(0, 13)} · ${all.find((e) => e.traceId === id && e.layer === "policy")?.details.route || "processing"}`,
+        `${time} · ${preview} · ${all.find((e) => e.traceId === id && e.layer === "policy")?.details.route || "processing"}`,
       );
       b.onclick = () => {
         selected = id;
@@ -59,6 +69,7 @@ function render() {
   lastRendered = key;
   $("traceId").textContent = selected || "No selected message";
   const policy = trace.find((e) => e.layer === "policy")?.details,
+    input = trace.find((e) => e.layer === "input"),
     coverage = trace.filter((e) => e.layer === "coverage").at(-1)?.details,
     gate = trace.find((e) => e.layer === "model-gate")?.details;
   $("route").textContent = policy?.route || "Waiting";
@@ -73,6 +84,9 @@ function render() {
     : "Not called";
   $("modelReason").textContent =
     gate?.reason || "Waiting for an actual model-gate event";
+  $("messagePreview").textContent = input
+    ? `${new Date(input.timestamp).toLocaleTimeString()} · ${input.details.message || "Message text unavailable"}`
+    : "Waiting for the input event.";
   $("calculation").textContent = policy
     ? `Persistence ${policy.persistence} + functioning ${policy.function} + overwhelm ${policy.overwhelm} + coping ${policy.coping} = ${policy.score}. Route: ${policy.route}. Reason: ${policy.reasons.join(", ")}. Policy ${policy.version}. Not a clinical probability.`
     : "P + F + O + C = support intensity. Safety evidence overrides this calculation.";
@@ -91,6 +105,8 @@ $("pair").onclick = async () => {
     const p = await api("pair", "POST");
     $("pairing").hidden = false;
     $("pairData").value = JSON.stringify({ url: p.url, token: p.token });
+    $("copyPair").disabled = false;
+    $("copyPair").textContent = "Copy pairing configuration";
     $("pairNote").textContent = p.tls
       ? "Trusted HTTPS configured. Use a phone on the same local network."
       : "Desktop browser pairing only. Configure trusted HTTPS before pairing a phone.";
@@ -127,19 +143,6 @@ $("copyPair").onclick = async () => {
     ? "Copied — paste it in MindVault"
     : "Copy blocked — text selected, press Ctrl+C";
 };
-$("openPair").onclick = () => {
-  const pairing = $("pairData").value.trim();
-  if (!pairing) {
-    $("openPair").textContent = "Press Pair a device first";
-    return;
-  }
-  const prototype = new URL("http://localhost:8082/");
-  prototype.hash = `dashboard=${encodeURIComponent(pairing)}`;
-  const opened = window.open(prototype.toString(), "_blank", "noopener");
-  $("openPair").textContent = opened
-    ? "Prototype opened and paired"
-    : "New tab blocked — allow pop-ups and retry";
-};
 $("clear").onclick = async () => {
   await api("events", "DELETE");
   all = [];
@@ -163,6 +166,8 @@ async function poll() {
     if (data.events.length) {
       all = [...all, ...data.events].slice(-1000);
       cursor = data.counter;
+      selected = data.events.at(-1).traceId;
+      lastRendered = "";
       render();
     }
     const traceCount = new Set(all.map((event) => event.traceId)).size;

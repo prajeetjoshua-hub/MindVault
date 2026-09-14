@@ -1,19 +1,26 @@
 import { emptyData, type AppData } from "../../../packages/contracts/types";
-// Browser preview never persists sensitive content or claims native encryption.
+const KEY = "mindvault-browser-vault";
+
+// Browser preview uses tab-scoped storage. Closing the browser tab clears it;
+// this does not claim the native build's encrypted-at-rest protection.
 export class Vault {
   readonly persistent = false;
-  private data: AppData = emptyData();
   async unlock() {
     return true;
   }
   async load() {
-    return structuredClone(this.data);
+    try {
+      const value = sessionStorage.getItem(KEY);
+      return value ? (JSON.parse(value) as AppData) : emptyData();
+    } catch {
+      return emptyData();
+    }
   }
   async save(data: AppData) {
-    this.data = structuredClone(data);
+    sessionStorage.setItem(KEY, JSON.stringify(data));
   }
   async destroy() {
-    this.data = emptyData();
+    sessionStorage.removeItem(KEY);
   }
   async lock() {}
 }

@@ -22,6 +22,29 @@ test("diagnostic sink failure cannot prevent a local response", async () => {
   assert.ok(result.text.length > 20);
 });
 
+test("restored browser messages preserve conversation and unresolved safety context", async () => {
+  const engine = new ConversationOrchestrator(() => {});
+  engine.restore([
+    {
+      id: "u1",
+      role: "user",
+      text: "help emergency",
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "c1",
+      role: "companion",
+      text: "Please use emergency support now.",
+      createdAt: new Date().toISOString(),
+      route: "SAFETY",
+      source: "template",
+    },
+  ]);
+  const result = await engine.process("I am safe now", defaultPreferences);
+  assert.ok(["SAFETY", "CLARIFY"].includes(result.decision.route));
+  assert.match(result.text, /safe|safety/i);
+});
+
 test("personalisation selects relevant consented memories only", () => {
   const memories = [
     { id: "a", text: "Short study sessions help with exams", createdAt: "" },
@@ -83,6 +106,7 @@ const scenarios = [
     "SAFETY",
   ],
   ["third person", "My friend says he wants to die.", "SAFETY"],
+  ["direct emergency request", "help emergency", "SAFETY"],
   ["idiom", "This homework is killing me. I need a break.", "LOW"],
   ["unsupported", "enakku romba kashtama irukku", "CLARIFY"],
   ["gibberish", "ajskldjf wqpo zxvv", "CLARIFY"],
@@ -98,7 +122,10 @@ for (const [name, input, expected] of scenarios)
       events.find((e) => e.layer === "model-gate")?.status,
       "skipped",
     );
-    assert.ok(!JSON.stringify(events).includes(input));
+    assert.equal(
+      events.find((event) => event.layer === "input")?.details.message,
+      input,
+    );
   });
 test("score contributions deduplicate across repetition and chunk overlap", async () => {
   const e = new ConversationOrchestrator(() => {});
@@ -149,7 +176,7 @@ test("model is never called for high or uncertain routes", async () => {
   );
   assert.equal(calls, 0);
 });
-test("medium uses available model and validates result", async () => {
+test("an unsupported authored context uses the available model and validates result", async () => {
   const model = {
     ready: () => true,
     generate: async () =>
@@ -157,7 +184,7 @@ test("medium uses available model and validates result", async () => {
     cancel: async () => {},
   };
   const r = await new ConversationOrchestrator(() => {}, model).process(
-    "I feel lonely every day.",
+    "The red kite kept circling above the station while I waited.",
     defaultPreferences,
   );
   assert.equal(r.source, "local-model");
@@ -169,7 +196,7 @@ test("unsafe model output is replaced with template", async () => {
     cancel: async () => {},
   };
   const r = await new ConversationOrchestrator(() => {}, model).process(
-    "I feel lonely every day.",
+    "The red kite kept circling above the station while I waited.",
     defaultPreferences,
   );
   assert.equal(r.source, "template");
@@ -184,7 +211,7 @@ test("model failure falls back without remote request", async () => {
     cancel: async () => {},
   };
   const r = await new ConversationOrchestrator(() => {}, model).process(
-    "I feel lonely every day.",
+    "The red kite kept circling above the station while I waited.",
     defaultPreferences,
   );
   assert.equal(r.source, "template");

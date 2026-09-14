@@ -4,5 +4,6 @@
     "strict": true,
     "types": ["node", "react", "react-native"],
     "allowImportingTsExtensions": true
-  }
+  },
+  "exclude": ["node_modules", "dist", "prototype-dist"]
 }

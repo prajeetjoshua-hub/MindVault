@@ -5,20 +5,24 @@ import {
   verifySavedChatsPassword,
 } from "../packages/security/savedChatsPasscode.ts";
 
-test("saved chats password stores a salted verifier and rejects a wrong password", async () => {
+test("saved chats PIN stores a salted verifier and rejects a wrong PIN", async () => {
   const lock = await createSavedChatsLock(
-    "forest-quiet",
+    "2468",
     "00112233445566778899aabbccddeeff",
   );
   assert.equal(lock.scheme, "pbkdf2-sha256");
   assert.equal(lock.verifier.length, 64);
-  assert.equal(await verifySavedChatsPassword("forest-quiet", lock), true);
-  assert.equal(await verifySavedChatsPassword("forest-loud", lock), false);
+  assert.equal(await verifySavedChatsPassword("2468", lock), true);
+  assert.equal(await verifySavedChatsPassword("1357", lock), false);
 });
 
-test("saved chats password requires at least six characters", async () => {
+test("saved chats PIN requires exactly four digits", async () => {
   await assert.rejects(
     createSavedChatsLock("12345", "00112233445566778899aabbccddeeff"),
-    /at least 6 characters/,
+    /exactly four digits/,
+  );
+  await assert.rejects(
+    createSavedChatsLock("abcd", "00112233445566778899aabbccddeeff"),
+    /exactly four digits/,
   );
 });

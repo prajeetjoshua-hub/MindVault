@@ -3,6 +3,7 @@ import type {
   ModelRequest,
 } from "../../../packages/contracts/types";
 export class LocalModel implements ModelAdapter {
+  private readonly storageKey = "mindvault-qwen-session";
   modelName = 'not-connected';
   private token = "";
   private active?: AbortController;
@@ -10,7 +11,15 @@ export class LocalModel implements ModelAdapter {
     return Boolean(this.token);
   }
   async autoConnect() {
-    return false;
+    const token = sessionStorage.getItem(this.storageKey);
+    if (!token) return false;
+    try {
+      await this.importFile(token);
+      return true;
+    } catch {
+      sessionStorage.removeItem(this.storageKey);
+      return false;
+    }
   }
   async generate(request: ModelRequest): Promise<string> {
     if (!this.token) throw new Error("Desktop conversation model is not connected");
@@ -70,6 +79,7 @@ export class LocalModel implements ModelAdapter {
       throw new Error("Unexpected local model");
     this.modelName = status.model;
     this.token = token.trim();
+    sessionStorage.setItem(this.storageKey, this.token);
   }
   async release() {
     await this.cancel();

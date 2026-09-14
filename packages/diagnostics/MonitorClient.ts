@@ -1,5 +1,6 @@
 import type { TraceEvent } from "../contracts/types";
 export class MonitorClient {
+  private readonly storageKey = "mindvault-dashboard-pairing";
   private pairing?: { url: string; token: string };
   private queue: Promise<void> = Promise.resolve();
   private generation = 0;
@@ -50,14 +51,33 @@ export class MonitorClient {
       !/^[a-f0-9]{64}$/.test(parsed.token)
     )
       throw new Error("Invalid pairing token");
-    this.disconnect();
+    this.disconnect(false);
     this.pairing = { url: url.origin, token: parsed.token };
+    if (!this.native && typeof sessionStorage !== "undefined")
+      sessionStorage.setItem(
+        this.storageKey,
+        JSON.stringify(this.pairing),
+      );
     this.onStatus("Paired — connection will be verified when an event is sent");
   }
-  disconnect() {
+  restore() {
+    if (this.native || typeof sessionStorage === "undefined") return false;
+    const stored = sessionStorage.getItem(this.storageKey);
+    if (!stored) return false;
+    try {
+      this.connect(stored);
+      return true;
+    } catch {
+      sessionStorage.removeItem(this.storageKey);
+      return false;
+    }
+  }
+  disconnect(forget = true) {
     this.generation++;
     this.inFlight?.abort();
     this.pairing = undefined;
+    if (forget && !this.native && typeof sessionStorage !== "undefined")
+      sessionStorage.removeItem(this.storageKey);
     this.onStatus("Disconnected");
   }
   send(event: TraceEvent) {
@@ -87,7 +107,7 @@ export class MonitorClient {
           });
           if (!result.ok) throw new Error("Monitor rejected event");
           if (generation === this.generation)
-            this.onStatus("Connected — diagnostics only; no conversation text");
+            this.onStatus("Connected — live local execution trace active");
         } catch {
           if (generation === this.generation)
             this.onStatus("Connection unavailable — app continues locally");

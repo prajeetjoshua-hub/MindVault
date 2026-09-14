@@ -18,6 +18,7 @@ type Props = {
   disconnect: () => void;
   connection: string;
   modelStatus: string;
+  modelReady: boolean;
   importModel: (sessionToken?: string) => void;
   onHelp: () => void;
 };
@@ -30,6 +31,7 @@ export function SettingsScreen(p: Props) {
     [deleteError, setDeleteError] = useState(""),
     [confirm, setConfirm] = useState(false);
   const pref = p.data.preferences;
+  const dashboardConnected = p.connection.startsWith("Connected");
   return (
     <ScrollView
       contentContainerStyle={ui.content}
@@ -43,6 +45,16 @@ export function SettingsScreen(p: Props) {
       )}
       {page === "menu" && (
         <>
+          {p.modelReady && (
+            <View style={ui.connectedCard}>
+              <Text style={ui.connectedText}>QWEN CONNECTED</Text>
+            </View>
+          )}
+          {dashboardConnected && (
+            <View style={ui.connectedCard}>
+              <Text style={ui.connectedText}>DASHBOARD CONNECTED</Text>
+            </View>
+          )}
           {[
             "Reply preferences",
             "Your memories",
@@ -211,19 +223,21 @@ export function SettingsScreen(p: Props) {
       )}
       {page === "Model & voice" && (
         <>
-          <View style={ui.card}>
+          <View style={p.modelReady ? ui.connectedCard : ui.card}>
             <Text style={ui.cardTitle}>
               {Platform.OS === "web"
                 ? "Desktop Qwen connection"
                 : "Local conversation model"}
             </Text>
-            <Text style={ui.body}>{p.modelStatus}</Text>
+            <Text style={p.modelReady ? ui.connectedText : ui.body}>
+              {p.modelReady ? "QWEN CONNECTED" : p.modelStatus}
+            </Text>
             <Text style={ui.small}>
               {Platform.OS === 'web' ? 'Connect a verified local runtime on this computer. ' : 'Official Q4_0 artifact. Import only after accepting its licence. '}
               No cloud fallback. Model availability does not mean clinically
               validated output.
             </Text>
-            {Platform.OS === 'web' && (
+            {Platform.OS === 'web' && !p.modelReady && (
               <TextInput
                 accessibilityLabel="Local model session token"
                 value={modelToken}
@@ -236,15 +250,17 @@ export function SettingsScreen(p: Props) {
                 style={ui.input}
               />
             )}
-            <Button
-              title={Platform.OS === 'web' ? 'Connect desktop model' : 'Import model file'}
-              secondary
-              disabled={Platform.OS === 'web' && !modelToken.trim()}
-              onPress={() => {
-                p.importModel(Platform.OS === 'web' ? modelToken : undefined);
-                if (Platform.OS === 'web') setModelToken('');
-              }}
-            />
+            {!p.modelReady && (
+              <Button
+                title={Platform.OS === 'web' ? 'Connect desktop model' : 'Import model file'}
+                secondary
+                disabled={Platform.OS === 'web' && !modelToken.trim()}
+                onPress={() => {
+                  p.importModel(Platform.OS === 'web' ? modelToken : undefined);
+                  if (Platform.OS === 'web') setModelToken('');
+                }}
+              />
+            )}
           </View>
           <View style={ui.card}>
             <Text style={ui.cardTitle}>Voice input</Text>
@@ -258,26 +274,36 @@ export function SettingsScreen(p: Props) {
       {page === "Demo connection" && (
         <>
           <Text style={ui.body}>
-            Share diagnostic events with your paired laptop. No conversation
-            text is sent. This is separate from the public landing page.
+            Share a memory-only live trace with this computer’s dashboard,
+            including the test message and processing events. This is separate
+            from the public landing page.
           </Text>
-          <Text style={ui.small}>{p.connection}</Text>
-          <TextInput
-            accessibilityLabel="Dashboard pairing configuration"
-            multiline
-            value={pairing}
-            onChangeText={setPairing}
-            placeholder="Paste session pairing configuration"
-            placeholderTextColor={colors.muted}
-            style={ui.input}
-          />
-          <Button
-            title="Pair dashboard"
-            onPress={() => {
-              if (p.connect(pairing)) setPairing("");
-            }}
-          />
-          <Button title="Disconnect" secondary onPress={p.disconnect} />
+          {dashboardConnected ? (
+            <View style={ui.connectedCard}>
+              <Text style={ui.connectedText}>DASHBOARD CONNECTED</Text>
+              <Text style={ui.body}>Live message traces are active.</Text>
+              <Button title="Disconnect dashboard" secondary onPress={p.disconnect} />
+            </View>
+          ) : (
+            <>
+              <Text style={ui.small}>{p.connection}</Text>
+              <TextInput
+                accessibilityLabel="Dashboard pairing configuration"
+                multiline
+                value={pairing}
+                onChangeText={setPairing}
+                placeholder='Paste the complete {"url":...,"token":...} value'
+                placeholderTextColor={colors.muted}
+                style={ui.input}
+              />
+              <Button
+                title="Pair dashboard"
+                onPress={() => {
+                  if (p.connect(pairing)) setPairing("");
+                }}
+              />
+            </>
+          )}
           <Text style={ui.small}>
             Native connections require trusted HTTPS. Loopback HTTP is allowed
             only for this computer’s browser preview.

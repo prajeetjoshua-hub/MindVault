@@ -17,6 +17,8 @@ export function respond(
   previousReply = "",
 ): string {
   if (decision.route === "SAFETY") {
+    if (decision.reasons.includes("emergency-help"))
+      return "I’m here. If this is an immediate emergency, call 112 now or ask someone nearby to call for you. If you can, move to a safer place and reach a trusted person who can stay with you. Open Help & support below for emergency, child-safety, women’s-safety, and mental-health numbers.";
     if (decision.reasons.includes("unresolved-safety-state"))
       return isReplyFeedback(text)
         ? "I hear that my replies aren’t helping, and I’m sorry. I’ll keep this direct: you raised a safety concern earlier, and I don’t want to overlook it. Are you in immediate danger or have you already hurt yourself? If so, contact local emergency services now and reach someone you trust who can stay with you."

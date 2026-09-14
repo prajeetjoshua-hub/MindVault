@@ -27,8 +27,8 @@ export async function createSavedChatsLock(
   password: string,
   salt: string,
 ): Promise<SavedChatsLock> {
-  if (password.length < 6)
-    throw new Error("Use at least 6 characters for your saved-chats password.");
+  if (!/^\d{4}$/.test(password))
+    throw new Error("Use exactly four digits for your saved-chats PIN.");
   return {
     scheme: "pbkdf2-sha256",
     salt,

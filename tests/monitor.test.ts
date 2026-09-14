@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
 
-test("monitor authenticates, redacts, deduplicates, rotates pairing, and rejects oversized input", async () => {
+test("monitor authenticates, redacts, deduplicates, keeps one session pairing, and rejects oversized input", async () => {
   const port = 19000 + Math.floor(Math.random() * 10000),
     origin = `http://127.0.0.1:${port}`;
   const child = spawn(
@@ -85,8 +85,9 @@ test("monitor authenticates, redacts, deduplicates, rotates pairing, and rejects
       ).status,
       413,
     );
-    await call("pair", admin, "POST");
-    assert.equal((await call("events", pair.token, "POST", event)).status, 401);
+    const samePair = await (await call("pair", admin, "POST")).json();
+    assert.equal(samePair.token, pair.token);
+    assert.equal((await call("events", pair.token, "POST", { ...event, sequence: 2 })).status, 200);
     await call("events", admin, "DELETE");
     assert.equal((await (await call("events", admin)).json()).events.length, 0);
   } finally {

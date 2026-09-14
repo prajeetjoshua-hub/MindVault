@@ -15,8 +15,7 @@ const origin = process.env.MONITOR_ORIGIN || `http://127.0.0.1:${port}`;
 if (tls && !origin.startsWith("https://"))
   throw new Error("MONITOR_ORIGIN must be HTTPS with a trusted certificate");
 const admin = crypto.randomBytes(32).toString("hex");
-let pair = crypto.randomBytes(32).toString("hex"),
-  expires = Date.now() + 30 * 60_000;
+const pair = crypto.randomBytes(32).toString("hex");
 let events = [],
   counter = 0;
 const equal = (a, b) =>
@@ -58,6 +57,7 @@ const detailsAllowed = new Set([
   "saved",
   "persistent",
   "action",
+  "message",
 ]);
 function cleanEvent(data) {
   if (
@@ -80,8 +80,10 @@ function cleanEvent(data) {
       typeof value === "boolean"
     )
       details[key] = value;
-    else if (typeof value === "string" && value.length <= 200)
-      details[key] = value;
+    else if (
+      typeof value === "string" &&
+      value.length <= (key === "message" ? 8_000 : 200)
+    ) details[key] = value;
     else if (Array.isArray(value))
       details[key] = value
         .filter((v) => typeof v === "string" && v.length < 80)
@@ -140,7 +142,7 @@ const server = (tls ? https : http).createServer(
     if (url.pathname.startsWith("/api/")) {
       const isAdmin = equal(token, admin);
       if (url.pathname === "/api/events" && req.method === "POST") {
-        if (!equal(token, pair) || Date.now() > expires)
+        if (!equal(token, pair))
           return send(401, { error: "Pairing expired or invalid" });
         let raw = "",
           bytes = 0;
@@ -194,9 +196,7 @@ const server = (tls ? https : http).createServer(
         return send(200, { ok: true });
       }
       if (url.pathname === "/api/pair" && req.method === "POST") {
-        pair = crypto.randomBytes(32).toString("hex");
-        expires = Date.now() + 30 * 60_000;
-        return send(200, { url: origin, token: pair, expires, tls });
+        return send(200, { url: origin, token: pair, tls });
       }
       return send(404, { error: "Not found" });
     }

@@ -139,10 +139,10 @@ export function createBridge({
                 { role: "user", content: body.input },
               ]
             : [{ role: "user", content: prompt }],
-        max_tokens: 220,
+        max_tokens: 140,
         temperature: 0.3,
         stream: false,
-        cache_prompt: false,
+        cache_prompt: true,
       });
       const text = result.choices?.[0]?.message?.content;
       if (typeof text !== "string" || !text.trim())

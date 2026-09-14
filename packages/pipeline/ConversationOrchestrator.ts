@@ -1,6 +1,7 @@
 import type {
   Decision,
   Memory,
+  Message,
   ModelAdapter,
   Preferences,
   TraceEvent,
@@ -57,6 +58,47 @@ export class ConversationOrchestrator {
     this.acuteAction = false;
     this.safetyChecks = 0;
   }
+  restore(messages: Message[]) {
+    this.reset();
+    const recent = messages.slice(-40);
+    this.dialogue = recent.map((message) => ({
+      role: message.role === "user" ? "user" : "assistant",
+      content: message.text,
+    }));
+    this.recentUsers = recent
+      .filter((message) => message.role === "user")
+      .map((message) => message.text)
+      .slice(-20);
+    this.previousUser = this.recentUsers.at(-1) ?? "";
+    this.previousReply =
+      recent.filter((message) => message.role === "companion").at(-1)?.text ?? "";
+    this.recentTurns = [];
+    for (let index = 0; index < recent.length - 1; index++) {
+      const user = recent[index], companion = recent[index + 1];
+      if (user.role === "user" && companion.role === "companion")
+        this.recentTurns.push(
+          `User: ${user.text}\nCompanion: ${companion.text}`,
+        );
+    }
+    this.recentTurns = this.recentTurns.slice(-20);
+    const lastCompanion = recent
+      .filter((message) => message.role === "companion")
+      .at(-1);
+    this.unresolvedSafety = lastCompanion?.route === "SAFETY";
+    this.selfHarmPending =
+      this.unresolvedSafety &&
+      /\b(?:hurt|harm|cut|die|dying|suicid|end my life)\b/i.test(
+        this.previousUser,
+      );
+    this.assaultPending =
+      this.unresolvedSafety &&
+      /\b(?:slapped|punched|kicked|beaten|hit me)\b/i.test(
+        this.recentUsers.join(" "),
+      );
+    this.noQuestions = /\b(?:stop asking|no questions)\b/i.test(
+      this.recentUsers.join(" "),
+    );
+  }
   async process(
     input: string,
     preferences: Preferences,
@@ -91,6 +133,7 @@ export class ConversationOrchestrator {
         characters: input.length,
         mode: "text",
         persisted: false,
+        message: input.slice(0, 8_000),
       });
       if (!input.trim()) throw new Error("Please enter a message.");
       const text = normalise(input);
@@ -264,12 +307,15 @@ export class ConversationOrchestrator {
         this.recentUsers.join("\n"),
         this.previousReply,
       );
+      const emergencyHelp = extracted.evidence.some(
+        (e) => e.category === "safety" && e.id === "emergency-help",
+      );
       const safetyReassurance = reassuranceNow;
       const selfHarmMethod =
         /\b(?:cut(?:ting)?|slash(?:ing)?)\s+(?:myself|my\s+(?:hand|arm|wrist))\b/.test(
           text,
         );
-      if (transition.contextFirst)
+      if (transition.contextFirst && !emergencyHelp)
         output =
           selfHarmMethod
             ? relationshipContext
@@ -350,10 +396,9 @@ export class ConversationOrchestrator {
             .filter((sentence) => !sentence.includes("?"))
             .join(" ") ||
           "I hear you. There’s no need to answer another question right now.";
-      // MEDIUM distress can benefit from the local model's warmer wording. LOW
-      // messages use it only when the authored layer returned a generic fallback.
-      const modelEligible =
-        eligible && (decision.route === "MEDIUM" || isGenericFallback(output));
+      // A reviewed authored reply stays immediate. The local model is reserved
+      // for messages the deterministic conversation layer cannot answer well.
+      const modelEligible = eligible && isGenericFallback(output);
       let source: "template" | "local-model" = "template";
       event("model-gate", modelEligible ? "completed" : "skipped", {
         eligible: modelEligible,
@@ -435,7 +480,7 @@ export class ConversationOrchestrator {
         !extracted.evidence.some((e) => e.category === "safety")
       ) {
         output =
-          "No live counsellor or emergency responder is watching this chat through MindVault. In this desktop preview, the conversation stays in this browser session; an optional local model runs on this computer, and the paired dashboard receives diagnostic events rather than conversation text. Someone with access to your unlocked screen could still read it.";
+          "No live counsellor or emergency responder is watching this chat through MindVault. In this desktop preview, the conversation stays in this browser session; an optional local model runs on this computer, and a dashboard you explicitly pair receives the test message and diagnostic events in memory. Someone with access to either unlocked screen could read it.";
         source = "template";
       }
       this.previousUser = text;

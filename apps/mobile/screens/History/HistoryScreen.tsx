@@ -13,6 +13,8 @@ type Props = {
   lock?: SavedChatsLock;
   pendingConversation?: Conversation;
   persistent: boolean;
+  unlocked: boolean;
+  onUnlocked: () => void;
   onCreatePassword: (password: string) => Promise<boolean>;
   onVerifyPassword: (password: string) => Promise<boolean>;
   onSavePending: () => Promise<boolean>;
@@ -21,22 +23,15 @@ type Props = {
 };
 
 export function HistoryScreen(p: Props) {
-  const [unlocked, setUnlocked] = useState(false),
-    [password, setPassword] = useState(""),
-    [confirmation, setConfirmation] = useState(""),
+  const [password, setPassword] = useState(""),
     [selected, setSelected] = useState<string>(),
     [confirm, setConfirm] = useState<"delete" | "export">(),
-    [deletePassword, setDeletePassword] = useState(""),
     [notice, setNotice] = useState(""),
     [working, setWorking] = useState(false);
   const conversation = p.conversations.find((item) => item.id === selected);
 
   const unlock = async () => {
     if (working) return;
-    if (!p.lock && password !== confirmation) {
-      setNotice("The two passwords do not match.");
-      return;
-    }
     setWorking(true);
     setNotice("");
     try {
@@ -47,9 +42,8 @@ export function HistoryScreen(p: Props) {
         setNotice("That password is incorrect.");
         return;
       }
-      setUnlocked(true);
+      p.onUnlocked();
       setPassword("");
-      setConfirmation("");
       if (p.pendingConversation) {
         const saved = await p.onSavePending();
         setNotice(
@@ -65,7 +59,7 @@ export function HistoryScreen(p: Props) {
     }
   };
 
-  if (!unlocked) {
+  if (!p.unlocked) {
     return (
       <ScrollView
         contentContainerStyle={ui.content}
@@ -76,8 +70,8 @@ export function HistoryScreen(p: Props) {
         </Text>
         <Text style={ui.body}>
           {p.lock
-            ? "Enter your MindVault password to view, save, export or delete a conversation."
-            : "Create a MindVault password before saving your first conversation. The password itself is never stored."}
+            ? "Enter your four-digit MindVault PIN once. Saved chats stay unlocked until this browser session closes."
+            : "Create one four-digit MindVault PIN before saving your first conversation. The PIN itself is never stored."}
         </Text>
         {p.pendingConversation && (
           <View style={ui.card}>
@@ -89,32 +83,21 @@ export function HistoryScreen(p: Props) {
         )}
         <TextInput
           accessibilityLabel={
-            p.lock ? "Saved chats password" : "Create saved chats password"
+            p.lock ? "Saved chats PIN" : "Create saved chats PIN"
           }
           value={password}
-          onChangeText={setPassword}
+          onChangeText={(value) => setPassword(value.replace(/\D/g, "").slice(0, 4))}
           secureTextEntry
+          keyboardType="number-pad"
+          maxLength={4}
           autoCapitalize="none"
           autoCorrect={false}
           placeholder={
-            p.lock ? "Enter password" : "Create password · 6+ characters"
+            p.lock ? "Enter 4-digit PIN" : "Create 4-digit PIN"
           }
           placeholderTextColor={colors.muted}
           style={ui.input}
         />
-        {!p.lock && (
-          <TextInput
-            accessibilityLabel="Confirm saved chats password"
-            value={confirmation}
-            onChangeText={setConfirmation}
-            secureTextEntry
-            autoCapitalize="none"
-            autoCorrect={false}
-            placeholder="Confirm password"
-            placeholderTextColor={colors.muted}
-            style={ui.input}
-          />
-        )}
         {!!notice && <Text style={ui.error}>{notice}</Text>}
         <Button
           title={
@@ -123,18 +106,18 @@ export function HistoryScreen(p: Props) {
               : p.pendingConversation
                 ? p.lock
                   ? "Unlock & save chat"
-                  : "Create password & save chat"
+                  : "Create PIN & save chat"
                 : p.lock
                   ? "Unlock saved chats"
-                  : "Create password"
+                  : "Create PIN"
           }
-          disabled={!password || (!p.lock && !confirmation) || working}
+          disabled={!/^\d{4}$/.test(password) || working}
           onPress={() => void unlock()}
         />
         <Text style={ui.small}>
           {p.persistent
             ? "Saved conversations remain inside the encrypted device vault. Device unlock still protects the whole app."
-            : "Desktop preview: saved chats last only for this browser session. This password demonstrates in-app access control; close or reload the preview to clear its memory."}
+            : "Desktop preview: saved chats and the unlocked state last only for this browser session. Closing the tab clears them."}
         </Text>
       </ScrollView>
     );
@@ -149,8 +132,8 @@ export function HistoryScreen(p: Props) {
         {conversation ? "Your conversation" : "Saved chats"}
       </Text>
       <Text style={ui.body}>
-        Conversations are saved only when you press Save this chat. Leaving this
-        screen locks the list again.
+        Conversations are saved only when you press Save this chat. Saved chats
+        stay unlocked until this browser session closes.
       </Text>
       {!!notice && <Text style={ui.body}>{notice}</Text>}
       {conversation ? (
@@ -161,7 +144,6 @@ export function HistoryScreen(p: Props) {
             onPress={() => {
               setSelected(undefined);
               setConfirm(undefined);
-              setDeletePassword("");
             }}
           />
           {conversation.messages.map((message) => (
@@ -176,46 +158,23 @@ export function HistoryScreen(p: Props) {
             <View style={ui.card}>
               <Text style={ui.body}>
                 {confirm === "delete"
-                  ? "Enter your MindVault password again to delete this saved chat."
+                  ? "Delete this saved chat from the current browser session?"
                   : "Export the conversation shown above as a readable text file? The exported copy will no longer be protected by MindVault."}
               </Text>
-              {confirm === "delete" && (
-                <TextInput
-                  accessibilityLabel="Password to delete saved chat"
-                  value={deletePassword}
-                  onChangeText={setDeletePassword}
-                  secureTextEntry
-                  autoCapitalize="none"
-                  autoCorrect={false}
-                  placeholder="Enter password"
-                  placeholderTextColor={colors.muted}
-                  style={ui.input}
-                />
-              )}
               <Button
                 title={
-                  confirm === "delete" ? "Verify & delete" : "Confirm export"
+                  confirm === "delete" ? "Delete saved chat" : "Confirm export"
                 }
-                disabled={confirm === "delete" && !deletePassword}
                 onPress={() => {
                   if (confirm === "export") {
                     p.onExport(conversation);
                     setConfirm(undefined);
                     return;
                   }
-                  void p.onVerifyPassword(deletePassword).then((accepted) => {
-                    if (!accepted) {
-                      setNotice(
-                        "That password is incorrect. The chat was not deleted.",
-                      );
-                      return;
-                    }
-                    p.onDelete(conversation.id);
-                    setSelected(undefined);
-                    setConfirm(undefined);
-                    setDeletePassword("");
-                    setNotice("Saved chat deleted.");
-                  });
+                  p.onDelete(conversation.id);
+                  setSelected(undefined);
+                  setConfirm(undefined);
+                  setNotice("Saved chat deleted.");
                 }}
               />
               <Button

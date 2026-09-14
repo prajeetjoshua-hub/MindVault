@@ -31,6 +31,19 @@ export const ui = StyleSheet.create({
     gap: 10,
   },
   cardTitle: { fontSize: 17, fontWeight: "600", color: c.text },
+  connectedCard: {
+    padding: 16,
+    borderRadius: 16,
+    backgroundColor: "#123D32",
+    borderWidth: 2,
+    borderColor: "#77F2C1",
+  },
+  connectedText: {
+    color: "#A8FFD9",
+    fontSize: 15,
+    fontWeight: "800",
+    letterSpacing: 0.8,
+  },
   row: { flexDirection: "row", gap: 8, alignItems: "center", flexWrap: "wrap" },
   button: {
     paddingHorizontal: 17,
