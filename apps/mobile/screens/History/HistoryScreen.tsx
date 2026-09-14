@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { ScrollView, Text, TextInput, View } from "react-native";
+import { Platform, ScrollView, Text, TextInput, View } from "react-native";
 import type {
   Conversation,
   SavedChatsLock,
@@ -52,7 +52,9 @@ export function HistoryScreen(p: Props) {
       }
     } catch (error) {
       setNotice(
-        error instanceof Error ? error.message : "Unable to unlock saved chats.",
+        error instanceof Error
+          ? error.message
+          : "Unable to unlock saved chats.",
       );
     } finally {
       setWorking(false);
@@ -70,7 +72,9 @@ export function HistoryScreen(p: Props) {
         </Text>
         <Text style={ui.body}>
           {p.lock
-            ? "Enter your four-digit MindVault PIN once. Saved chats stay unlocked until this browser session closes."
+            ? p.persistent
+              ? "Your saved chats are protected by this phone’s device unlock."
+              : "Enter your four-digit MindVault PIN once. Saved chats stay unlocked until this browser session closes."
             : "Create one four-digit MindVault PIN before saving your first conversation. The PIN itself is never stored."}
         </Text>
         {p.pendingConversation && (
@@ -86,15 +90,19 @@ export function HistoryScreen(p: Props) {
             p.lock ? "Saved chats PIN" : "Create saved chats PIN"
           }
           value={password}
-          onChangeText={(value) => setPassword(value.replace(/\D/g, "").slice(0, 4))}
+          onChangeText={(value) =>
+            setPassword(value.replace(/\D/g, "").slice(0, 4))
+          }
           secureTextEntry
           keyboardType="number-pad"
+          returnKeyType="done"
+          onSubmitEditing={() => {
+            if (/^\d{4}$/.test(password) && !working) void unlock();
+          }}
           maxLength={4}
           autoCapitalize="none"
           autoCorrect={false}
-          placeholder={
-            p.lock ? "Enter 4-digit PIN" : "Create 4-digit PIN"
-          }
+          placeholder={p.lock ? "Enter 4-digit PIN" : "Create 4-digit PIN"}
           placeholderTextColor={colors.muted}
           style={ui.input}
         />
@@ -133,7 +141,9 @@ export function HistoryScreen(p: Props) {
       </Text>
       <Text style={ui.body}>
         Conversations are saved only when you press Save this chat. Saved chats
-        stay unlocked until this browser session closes.
+        {Platform.OS === "web"
+          ? " stay unlocked until this browser session closes."
+          : " open after device authentication; you do not need to re-enter the MindVault PIN."}
       </Text>
       {!!notice && <Text style={ui.body}>{notice}</Text>}
       {conversation ? (

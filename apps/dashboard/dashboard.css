@@ -9,9 +9,12 @@
 }
 body {
   margin: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
 }
 header {
-  padding: 24px 4vw;
+  min-height: 58px;
+  padding: 14px 2vw;
   border-bottom: 1px solid #2b3d2f;
   display: flex;
   justify-content: space-between;
@@ -33,9 +36,10 @@ header {
   font-size: 12px;
 }
 main {
-  max-width: 1400px;
+  width: 100%;
+  max-width: 1920px;
   margin: auto;
-  padding: 35px 4vw;
+  padding: 18px 2vw 0;
 }
 .intro {
   display: flex;
@@ -44,9 +48,9 @@ main {
   align-items: center;
 }
 h1 {
-  font-size: 44px;
+  font-size: clamp(30px, 3vw, 44px);
   letter-spacing: -2px;
-  margin: 10px 0;
+  margin: 4px 0;
 }
 h2 {
   font-size: 17px;
@@ -92,16 +96,16 @@ button.secondary {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 15px;
-  margin: 30px 0;
+  margin: 16px 0;
 }
 .metrics article {
   background: #17231b;
   border: 1px solid #304634;
   border-radius: 18px;
-  padding: 22px;
+  padding: 14px 16px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 6px;
 }
 .metrics span {
   font-size: 10px;
@@ -109,7 +113,7 @@ button.secondary {
   color: #a4bd98;
 }
 .metrics strong {
-  font-size: 29px;
+  font-size: clamp(20px, 2vw, 27px);
   color: #d5f59c;
 }
 .metrics small {
@@ -117,24 +121,65 @@ button.secondary {
 }
 .workspace {
   display: grid;
-  grid-template-columns: 230px 1fr;
+  grid-template-columns: minmax(220px, 18vw) minmax(0, 1fr);
   border: 1px solid #304634;
   border-radius: 20px;
   overflow: hidden;
+  height: calc(100vh - 285px);
+  min-height: 430px;
 }
 .workspace aside {
   border-right: 1px solid #304634;
-  padding: 20px;
+  padding: 14px;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 12px;
+  overflow: hidden;
 }
 .workspace > section {
-  padding: 24px;
+  padding: 14px 16px;
   min-width: 0;
+  overflow: auto;
+  scrollbar-color: #6f9a59 #142019;
+}
+.aside-block {
+  min-height: 0;
+}
+.aside-block h2 {
+  margin: 0 0 8px;
+}
+.messages-block {
+  display: flex;
+  flex-direction: column;
+}
+#traces {
+  min-height: 0;
+  overflow: auto;
+  scrollbar-color: #6f9a59 #142019;
+}
+.tests-block {
+  border-top: 1px solid #304634;
+  padding-top: 12px;
+}
+.tests-block p {
+  margin: 0 0 8px;
+  font-size: 10px;
+  line-height: 1.45;
+}
+.tests-block details {
+  font-size: 11px;
+  color: #d5f59c;
+}
+#testCases {
+  max-height: 150px;
+  overflow: auto;
 }
 #traces button {
   display: block;
   width: 100%;
   text-align: left;
-  margin: 8px 0;
+  margin: 6px 0;
   background: #1d2e22;
   color: #c7d9be;
   font-size: 11px;
@@ -151,24 +196,34 @@ button.secondary {
   overflow-wrap: anywhere;
 }
 .calculation {
-  padding: 18px;
+  padding: 10px 12px;
   background: #223428;
   border-radius: 12px;
-  margin-bottom: 20px;
+  margin-bottom: 10px;
   color: #d5f59c;
   font-size: 13px;
-  line-height: 1.8;
+  line-height: 1.45;
+}
+#timeline {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 10px;
+  align-items: start;
 }
 .event {
-  border-left: 2px solid #416342;
-  padding: 4px 0 20px 20px;
-  margin-left: 8px;
+  min-width: 0;
+  border: 1px solid #304634;
+  border-top: 2px solid #6f9a59;
+  border-radius: 12px;
+  padding: 10px;
+  background: #111c15;
 }
 .event h3 {
   font-size: 14px;
   margin: 0 0 8px;
 }
 .event code {
+  display: block;
   font-size: 11px;
   color: #a9bca8;
   white-space: pre-wrap;
@@ -183,14 +238,14 @@ button.secondary {
   color: #efb592;
 }
 .empty {
-  padding: 40px;
+  padding: 24px;
   color: #819581;
 }
 footer {
   font-size: 9px;
   letter-spacing: 1.4px;
   color: #78917b;
-  padding: 26px 0;
+  padding: 9px 0;
 }
 #pairing {
   background: #1e3022;
@@ -210,8 +265,8 @@ textarea {
   resize: vertical;
 }
 .message-preview {
-  margin: 14px 0;
-  padding: 14px 16px;
+  margin: 8px 0;
+  padding: 10px 12px;
   color: #efffdc;
   background: #193522;
   border: 1px solid #6f9a59;
@@ -219,6 +274,15 @@ textarea {
   font-weight: 700;
   line-height: 1.5;
   overflow-wrap: anywhere;
+}
+body.dashboard-connected .intro > div:first-child p:last-child {
+  display: none;
+}
+body.dashboard-connected .intro h1 {
+  font-size: 30px;
+}
+body.dashboard-connected .intro {
+  min-height: 45px;
 }
 @media (max-width: 850px) {
   .intro {
@@ -229,14 +293,21 @@ textarea {
   }
   .workspace {
     grid-template-columns: 1fr;
+    height: auto;
   }
   .workspace aside {
     border-right: 0;
     border-bottom: 1px solid #304634;
+    max-height: 300px;
   }
   .brand span {
     display: block;
     margin: 5px 0;
+  }
+}
+@media (min-width: 1500px) {
+  #timeline {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 @media (max-width: 450px) {

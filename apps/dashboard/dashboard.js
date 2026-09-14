@@ -15,6 +15,11 @@ let all = [],
   cursor = 0,
   selected = "",
   lastRendered = "";
+function enterConnectedLayout() {
+  document.body.classList.add("dashboard-connected");
+  $("pairing").hidden = true;
+  $("pair").hidden = true;
+}
 async function api(path, method = "GET") {
   const r = await fetch(`/api/${path}`, {
     method,
@@ -48,7 +53,8 @@ function render() {
           })
         : "waiting";
       const message = String(input?.details?.message || "Processing…");
-      const preview = message.length > 34 ? `${message.slice(0, 34)}…` : message;
+      const preview =
+        message.length > 34 ? `${message.slice(0, 34)}…` : message;
       const b = node(
         "button",
         `${time} · ${preview} · ${all.find((e) => e.traceId === id && e.layer === "policy")?.details.route || "processing"}`,
@@ -168,6 +174,7 @@ async function poll() {
       cursor = data.counter;
       selected = data.events.at(-1).traceId;
       lastRendered = "";
+      enterConnectedLayout();
       render();
     }
     const traceCount = new Set(all.map((event) => event.traceId)).size;

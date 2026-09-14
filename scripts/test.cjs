@@ -18,6 +18,7 @@ const child = spawn(
     userShim,
     require.resolve("tsx/cli"),
     "--test",
+    "--test-concurrency=1",
     "--test-reporter=tap",
     ...testFiles,
   ],

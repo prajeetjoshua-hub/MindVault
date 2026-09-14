@@ -114,7 +114,7 @@ In another terminal:
 npm run dashboard
 ```
 
-Open `http://localhost:8082/` and the **private dashboard URL printed by the local service**. Select Pair a device, paste its configuration into app Settings → Demo connection, and send synthetic inputs. Inspect route, score calculation, coverage, model gate and storage result. The latest regression run appears below the timeline. Restarting the receiver clears traces and rotates its session; pair again. Never commit or publish the private dashboard URL or pairing configuration.
+Open `http://localhost:8082/` and the **private dashboard URL printed by the local service**. Select Pair a device, paste its configuration into app Settings → Demo connection, and send synthetic inputs. The pairing box disappears after a live event. Inspect route, score calculation, coverage, model gate and storage result in the landscape timeline grid; the latest regression run stays in the message sidebar. Restarting the receiver clears traces and rotates its session; pair again. Never commit or publish the private dashboard URL or pairing configuration.
 
 `npm run prototype:export` creates `prototype-dist/`; `npm run export:web` still exports the existing public landing. A release intended to work in airplane mode must be a bundled native build, not either browser preview.
 

@@ -31,7 +31,8 @@ export function SettingsScreen(p: Props) {
     [deleteError, setDeleteError] = useState(""),
     [confirm, setConfirm] = useState(false);
   const pref = p.data.preferences;
-  const dashboardConnected = p.connection.startsWith("Connected");
+  const dashboardConnected =
+    p.connection.startsWith("Paired") || p.connection.startsWith("Connected");
   return (
     <ScrollView
       contentContainerStyle={ui.content}
@@ -162,7 +163,9 @@ export function SettingsScreen(p: Props) {
             <Text style={ui.cardTitle}>Saved chats are always optional</Text>
             <Text style={ui.body}>
               Conversations are kept only when you press Save this chat. A
-              separate MindVault password is required to view or delete them.
+              four-digit PIN is created once. The native app then relies on the
+              phone owner’s system authentication; the desktop preview asks
+              once per browser session.
             </Text>
           </View>
           {confirm ? (
@@ -233,11 +236,13 @@ export function SettingsScreen(p: Props) {
               {p.modelReady ? "QWEN CONNECTED" : p.modelStatus}
             </Text>
             <Text style={ui.small}>
-              {Platform.OS === 'web' ? 'Connect a verified local runtime on this computer. ' : 'Official Q4_0 artifact. Import only after accepting its licence. '}
+              {Platform.OS === "web"
+                ? "Connect a verified local runtime on this computer. "
+                : "Official Q4_0 artifact. Import only after accepting its licence. "}
               No cloud fallback. Model availability does not mean clinically
               validated output.
             </Text>
-            {Platform.OS === 'web' && !p.modelReady && (
+            {Platform.OS === "web" && !p.modelReady && (
               <TextInput
                 accessibilityLabel="Local model session token"
                 value={modelToken}
@@ -252,12 +257,16 @@ export function SettingsScreen(p: Props) {
             )}
             {!p.modelReady && (
               <Button
-                title={Platform.OS === 'web' ? 'Connect desktop model' : 'Import model file'}
+                title={
+                  Platform.OS === "web"
+                    ? "Connect desktop model"
+                    : "Import model file"
+                }
                 secondary
-                disabled={Platform.OS === 'web' && !modelToken.trim()}
+                disabled={Platform.OS === "web" && !modelToken.trim()}
                 onPress={() => {
-                  p.importModel(Platform.OS === 'web' ? modelToken : undefined);
-                  if (Platform.OS === 'web') setModelToken('');
+                  p.importModel(Platform.OS === "web" ? modelToken : undefined);
+                  if (Platform.OS === "web") setModelToken("");
                 }}
               />
             )}
@@ -281,8 +290,16 @@ export function SettingsScreen(p: Props) {
           {dashboardConnected ? (
             <View style={ui.connectedCard}>
               <Text style={ui.connectedText}>DASHBOARD CONNECTED</Text>
-              <Text style={ui.body}>Live message traces are active.</Text>
-              <Button title="Disconnect dashboard" secondary onPress={p.disconnect} />
+              <Text style={ui.body}>
+                {p.connection.startsWith("Connected")
+                  ? "Live message traces are active."
+                  : "Pairing saved. Your next message will verify the live trace."}
+              </Text>
+              <Button
+                title="Disconnect dashboard"
+                secondary
+                onPress={p.disconnect}
+              />
             </View>
           ) : (
             <>

@@ -60,8 +60,9 @@ export default function App() {
     [page, setPage] = useState(restored.page ?? "Home");
   const [draft, setDraft] = useState(restored.draft ?? ""),
     [messages, setMessages] = useState<Message[]>(restored.messages ?? []),
-    [pendingConversation, setPendingConversation] =
-      useState<Conversation | undefined>(restored.pendingConversation),
+    [pendingConversation, setPendingConversation] = useState<
+      Conversation | undefined
+    >(restored.pendingConversation),
     [busy, setBusy] = useState(false),
     [error, setError] = useState("");
   const [savedChatsUnlocked, setSavedChatsUnlocked] = useState(
@@ -115,10 +116,20 @@ export default function App() {
       turnGoal,
       savedChatsUnlocked,
     });
-  }, [locked, page, draft, messages, pendingConversation, turnGoal, savedChatsUnlocked]);
+  }, [
+    locked,
+    page,
+    draft,
+    messages,
+    pendingConversation,
+    turnGoal,
+    savedChatsUnlocked,
+  ]);
   useEffect(() => {
     if (Platform.OS !== "web" || typeof location === "undefined") return;
-    const pairing = new URLSearchParams(location.hash.slice(1)).get("dashboard");
+    const pairing = new URLSearchParams(location.hash.slice(1)).get(
+      "dashboard",
+    );
     if (!pairing) return;
     try {
       monitor.connect(pairing);
@@ -152,6 +163,12 @@ export default function App() {
         const next = await vault.load();
         dataRef.current = next;
         setData(next);
+        // The native vault has already required the phone owner's system
+        // authentication. A saved-chat PIN is created once, then the device
+        // unlock is the gate on later app launches.
+        if (Platform.OS !== "web" && next.savedChatsLock) {
+          setSavedChatsUnlocked(true);
+        }
         setLocked(false);
         if (Platform.OS !== "web" && model.autoConnect) {
           setModelStatus("Connecting the previously imported local model…");
@@ -544,23 +561,27 @@ export default function App() {
               )}
               {page === "Help" && <HelpScreen />}
               <View style={ui.nav}>
-                {["Home", "Companion", "Check-in", "Saved chats", "Settings"].map(
-                  (item) => (
-                    <Pressable
-                      accessibilityRole="tab"
-                      accessibilityState={{ selected: page === item }}
-                      key={item}
-                      onPress={() => setPage(item)}
-                      style={[ui.navItem, page === item && ui.selected]}
+                {[
+                  "Home",
+                  "Companion",
+                  "Check-in",
+                  "Saved chats",
+                  "Settings",
+                ].map((item) => (
+                  <Pressable
+                    accessibilityRole="tab"
+                    accessibilityState={{ selected: page === item }}
+                    key={item}
+                    onPress={() => setPage(item)}
+                    style={[ui.navItem, page === item && ui.selected]}
+                  >
+                    <Text
+                      style={[ui.navText, page === item && ui.selectedText]}
                     >
-                      <Text
-                        style={[ui.navText, page === item && ui.selectedText]}
-                      >
-                        {item}
-                      </Text>
-                    </Pressable>
-                  ),
-                )}
+                      {item}
+                    </Text>
+                  </Pressable>
+                ))}
               </View>
             </>
           )}
