@@ -30,6 +30,8 @@ npm run prototype:web
 
 Open `http://localhost:8082/`. In a second terminal run `npm run dashboard`, then open the private local URL it prints. Press **Pair a device**, copy the visible JSON configuration, and paste it into **Settings → Demo connection**. After the first live event, the pairing controls collapse and the dashboard uses a landscape card grid for the selected message. The dashboard shows the local test message, receipt time, actual trace events and score contributions in memory. Do not publish session tokens. The browser prototype uses tab-scoped session storage so chat, drafts, saved chats and connections survive tab switches and reloads; closing the tab clears that session. Enter submits a completed four-digit PIN in the desktop preview.
 
+The desktop Qwen launcher uses a single request slot, quantised key/value caches and skips model warm-up to reduce memory pressure. If the local runtime stops or restarts, the prototype removes the stale connection instead of continuing to show **QWEN CONNECTED**. Deterministic support remains available, and an unmatched message receives a warm authored fallback without exposing model or runtime details.
+
 Native authentication, encrypted storage and local-model adapters are written but still require an Android build and device testing. **Offline voice is not enabled.** Phone testing targets a Samsung F15 with Android 16 and 6 GB RAM. The native prototype requires a development or standalone build, not Expo Go.
 
 See [the architecture, model artifact, limitations and run instructions](docs/FUNCTIONAL-PROTOTYPE.md). Use `npm run prototype:export` for a static functional browser build; the existing website export remains separate.

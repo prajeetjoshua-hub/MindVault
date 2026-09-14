@@ -255,6 +255,14 @@ export default function App() {
         dataRef.current.memories,
       );
       if (turn !== generation.current) return;
+      if (
+        !model.ready() &&
+        /^(?:Qwen3 4B|Local model).*connected/i.test(modelStatus)
+      ) {
+        setModelStatus(
+          "The local Qwen connection stopped. Restart it and reconnect; deterministic replies remain active.",
+        );
+      }
       setTurnGoal(undefined);
       const nextMessages: Message[] = [
         ...before,

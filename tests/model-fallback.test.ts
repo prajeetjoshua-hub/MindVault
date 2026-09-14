@@ -18,7 +18,10 @@ test("available local model handles ordinary unknown wording and receives conver
         : "That sounds like an enjoyable upgrade. What have you watched on it?";
     },
   });
-  await engine.process("I noticed a red kite on the bus ride home", defaultPreferences);
+  await engine.process(
+    "I noticed a red kite on the bus ride home",
+    defaultPreferences,
+  );
   const result = await engine.process(
     "It kept circling above the station while I waited",
     defaultPreferences,
@@ -26,7 +29,10 @@ test("available local model handles ordinary unknown wording and receives conver
   assert.equal(result.source, "local-model");
   assert.doesNotMatch(requests.at(-1)!.context, /User: i noticed a red kite/);
   assert.equal(requests.at(-1)!.turns?.[0].role, "user");
-  assert.equal(requests.at(-1)!.turns?.[0].content, "I noticed a red kite on the bus ride home");
+  assert.equal(
+    requests.at(-1)!.turns?.[0].content,
+    "I noticed a red kite on the bus ride home",
+  );
   assert.equal(requests.at(-1)!.turns?.[1].role, "assistant");
 });
 test("authored topic replies take precedence over the optional local model", async () => {
@@ -39,7 +45,10 @@ test("authored topic replies take precedence over the optional local model", asy
       return "A generic generated answer";
     },
   });
-  const result = await engine.process("I got a new monitor", defaultPreferences);
+  const result = await engine.process(
+    "I got a new monitor",
+    defaultPreferences,
+  );
   assert.equal(result.source, "template");
   assert.match(result.text, /monitor/i);
   assert.equal(calls, 0);
@@ -103,4 +112,20 @@ test("unavailable model still answers supported small talk without language warn
     (await engine.process("i am good how are you", defaultPreferences)).text,
     /here with you|glad you’re doing well/,
   );
+});
+test("runtime failure falls back warmly without exposing model plumbing", async () => {
+  const engine = new ConversationOrchestrator(() => {}, {
+    ready: () => true,
+    cancel: async () => {},
+    generate: async () => {
+      throw new Error("runtime stopped");
+    },
+  });
+  const result = await engine.process(
+    "I found an old blue marble in my coat pocket",
+    defaultPreferences,
+  );
+  assert.equal(result.source, "template");
+  assert.match(result.text, /don’t want to brush you off/i);
+  assert.doesNotMatch(result.text, /model|runtime|unavailable/i);
 });

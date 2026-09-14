@@ -1,10 +1,10 @@
 import type { Decision, Preferences } from "../contracts/types.ts";
 import { conversationalReply, isReplyFeedback } from "./conversation.ts";
-import { contextualReply } from './contextualReply.ts';
+import { contextualReply } from "./contextualReply.ts";
 
 /** True when the authored layer could not find a specific conversation response. */
 export function isGenericFallback(text: string) {
-  return /^(?:Thank you for telling me\. Would you like to tell me a little more about that\?|I haven’t quite understood that message\. My local conversation model isn’t available to help with this reply yet\. Could you explain what you mean\?|I don’t want to keep asking you the same thing\.)/i.test(
+  return /^(?:Thank you for telling me\. Would you like to tell me a little more about that\?|I may have missed what you meant, but I don’t want to brush you off\.|I don’t want to keep asking you the same thing\.)/i.test(
     text,
   );
 }
@@ -34,13 +34,20 @@ export function respond(
       const feedback = conversationalReply(text, preferences, previousReply);
       if (feedback) return feedback;
     }
-    const known = contextualReply(text, previousUser, preferences, previousReply);
+    const known = contextualReply(
+      text,
+      previousUser,
+      preferences,
+      previousReply,
+    );
     if (known) return known;
-    return "I haven’t quite understood that message. My local conversation model isn’t available to help with this reply yet. Could you explain what you mean?";
+    return "I may have missed what you meant, but I don’t want to brush you off. Tell me what you wanted me to hear, in whatever words feel natural.";
   }
   if (/^(hi|hello|hey|good morning|good evening)[!.\s]*$/.test(text.trim()))
     return "Hi. It’s good to see you. Would you like to talk something through, or just share how your day is going?";
-  const specific = contextualReply(text, previousUser, preferences, previousReply) ?? conversationalReply(text, preferences, previousReply);
+  const specific =
+    contextualReply(text, previousUser, preferences, previousReply) ??
+    conversationalReply(text, preferences, previousReply);
   if (specific) return specific;
   if (
     /\b(walk|nice evening|nice day|good day|happy|excited)\b/.test(text) &&
@@ -55,6 +62,15 @@ export function respond(
     /\b(prepar|time|chapter|subject|marks|mock|family)\b/.test(text);
   if (followupExam && preferences.goal === "plan")
     return "That helps me understand the obstacle. Let’s choose one topic you can work on for a short, manageable session, then take a break. Which topic would make the biggest difference?";
+  if (decision.topic === "general") {
+    const fallback =
+      preferences.goal === "listen"
+        ? "I may have missed part of what you meant, but I’m here with you. You can keep going in your own words; there’s no need to turn this into a task."
+        : "I may have missed what you meant, but I don’t want to brush you off. Tell me what you wanted me to hear, in whatever words feel natural.";
+    return fallback === previousReply
+      ? "I’m still with you. Take this in whichever direction feels natural, and I’ll pay attention to the details you share."
+      : fallback;
+  }
   const question = {
     exam: "What is making this feel difficult—preparation, recent results, or something happening outside your studies?",
     family:
@@ -64,10 +80,6 @@ export function respond(
     loneliness: "When does the feeling of being alone become strongest?",
     sleep: "What tends to be going on when you try to rest?",
     work: "Which part of the situation at work feels most difficult to manage?",
-    general:
-      preferences.goal === "listen"
-        ? "You can keep going; there’s no need to turn this into a task."
-        : "Would you like to tell me a little more about that?",
   }[decision.topic];
   const acknowledgement =
     preferences.style === "direct"

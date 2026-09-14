@@ -164,8 +164,8 @@ export function SettingsScreen(p: Props) {
             <Text style={ui.body}>
               Conversations are kept only when you press Save this chat. A
               four-digit PIN is created once. The native app then relies on the
-              phone owner’s system authentication; the desktop preview asks
-              once per browser session.
+              phone owner’s system authentication; the desktop preview asks once
+              per browser session.
             </Text>
           </View>
           {confirm ? (
