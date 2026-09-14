@@ -78,6 +78,17 @@ export default function App() {
     () => new ConversationOrchestrator(emit, model),
     [model, monitor],
   );
+  useEffect(() => {
+    if (Platform.OS !== "web" || typeof location === "undefined") return;
+    const pairing = new URLSearchParams(location.hash.slice(1)).get("dashboard");
+    if (!pairing) return;
+    try {
+      monitor.connect(pairing);
+      history.replaceState(null, "", `${location.pathname}${location.search}`);
+    } catch (e) {
+      setConnection(e instanceof Error ? e.message : "Unable to pair");
+    }
+  }, [monitor]);
   const persist = async (next: AppData) => {
     dataRef.current = next;
     setData(next);

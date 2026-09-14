@@ -103,14 +103,42 @@ $("pair").onclick = async () => {
 };
 $("copyPair").onclick = async () => {
   const field = $("pairData");
+  const button = $("copyPair");
+  if (!field.value.trim()) {
+    button.textContent = "Press Pair a device first";
+    return;
+  }
+  let copied = false;
   try {
-    await navigator.clipboard.writeText(field.value);
-    $("copyPair").textContent = "Copied — paste it in MindVault";
-  } catch {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(field.value);
+      copied = true;
+    }
+  } catch {}
+  if (!copied) {
     field.focus();
     field.select();
-    $("copyPair").textContent = "Selected — press Ctrl+C";
+    field.setSelectionRange(0, field.value.length);
+    try {
+      copied = document.execCommand("copy");
+    } catch {}
   }
+  button.textContent = copied
+    ? "Copied — paste it in MindVault"
+    : "Copy blocked — text selected, press Ctrl+C";
+};
+$("openPair").onclick = () => {
+  const pairing = $("pairData").value.trim();
+  if (!pairing) {
+    $("openPair").textContent = "Press Pair a device first";
+    return;
+  }
+  const prototype = new URL("http://localhost:8082/");
+  prototype.hash = `dashboard=${encodeURIComponent(pairing)}`;
+  const opened = window.open(prototype.toString(), "_blank", "noopener");
+  $("openPair").textContent = opened
+    ? "Prototype opened and paired"
+    : "New tab blocked — allow pop-ups and retry";
 };
 $("clear").onclick = async () => {
   await api("events", "DELETE");
