@@ -39,8 +39,13 @@ import { HistoryScreen } from "./screens/History/HistoryScreen";
 import { SettingsScreen } from "./screens/Settings/SettingsScreen";
 import { Button } from "./components/Button";
 import { ui } from "./components/ui.styles";
+import { installWebTheme } from "./theme/installWebTheme";
 const id = () => `${Date.now()}-${Math.random().toString(36).slice(2, 10)}`;
 export default function App() {
+  useEffect(() => {
+    if (Platform.OS === "web") installWebTheme();
+  }, []);
+
   const [turnGoal, setTurnGoal] = useState<AppData["preferences"]["goal"]>();
   const [locked, setLocked] = useState(true),
     [data, setData] = useState<AppData>(emptyData),
