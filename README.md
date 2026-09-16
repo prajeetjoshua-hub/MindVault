@@ -4,20 +4,6 @@ A React Native / Expo self-help prototype for ages **13+**, with an original ani
 
 Owner and publisher: **prajeetjoshua-hub**.
 
-## Live demo
-
-**[Open the MindVault live demo](https://prajeetjoshua-hub.github.io/MindVault/)**
-
-Scan this QR with your phone camera to open the same webpage. No installation or Expo Go is required.
-
-<a href="https://prajeetjoshua-hub.github.io/MindVault/">
-  <img src="docs/live-demo-qr.png" alt="QR code linking to the MindVault live web demo" width="220" height="220" />
-</a>
-
-Hosted on GitHub Pages. The demo remains UI-only, with chat interaction locked.
-
-The black-and-green webpage places the working phone demo on the left and explains the MindVault idea on the right. On smaller screens these sections stack. Scroll inside the phone to explore the white-and-light-green app.
-
 ## Local Quiet Forest prototype
 
 The functional prototype includes typed conversations, guided check-in, preferences, manually saved four-digit-PIN-protected chats, export, memory controls, visible deterministic/Qwen reply labels, experimental deterministic routing and a separate live pipeline dashboard. On the native app, the PIN is created once and the phone's system authentication protects later access; the browser preview keeps its unlock only until that tab closes. Desktop regression tests cover routing, long-message processing, cancellation, model fallback, saved-chat PIN verification and diagnostic authentication. Passing these tests is not clinical validation.
