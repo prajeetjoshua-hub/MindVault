@@ -39,6 +39,71 @@ if (!sdkRoot) {
   );
 }
 
+// A release APK does not trust user-installed certificate authorities by
+// default. When the private phone-dashboard service has created its local CA,
+// bundle only that public certificate so the app can send HTTPS traces to the
+// laptop. The CA private key remains in .runtime and is never copied here.
+const dashboardCa = path.join(
+  runtimeRoot,
+  "dashboard-tls",
+  "mindvault-local-ca.crt",
+);
+if (fs.existsSync(dashboardCa)) {
+  const rawDirectory = path.join(
+    androidRoot,
+    "app",
+    "src",
+    "main",
+    "res",
+    "raw",
+  );
+  const xmlDirectory = path.join(
+    androidRoot,
+    "app",
+    "src",
+    "main",
+    "res",
+    "xml",
+  );
+  fs.mkdirSync(rawDirectory, { recursive: true });
+  fs.mkdirSync(xmlDirectory, { recursive: true });
+  fs.copyFileSync(dashboardCa, path.join(rawDirectory, "mindvault_local_ca.crt"));
+  fs.writeFileSync(
+    path.join(xmlDirectory, "mindvault_network_security.xml"),
+    `<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+  <base-config cleartextTrafficPermitted="false">
+    <trust-anchors>
+      <certificates src="system" />
+      <certificates src="@raw/mindvault_local_ca" />
+    </trust-anchors>
+  </base-config>
+  <debug-overrides>
+    <trust-anchors>
+      <certificates src="user" />
+    </trust-anchors>
+  </debug-overrides>
+</network-security-config>
+`,
+  );
+  const manifestPath = path.join(
+    androidRoot,
+    "app",
+    "src",
+    "main",
+    "AndroidManifest.xml",
+  );
+  let manifest = fs.readFileSync(manifestPath, "utf8");
+  if (!manifest.includes("android:networkSecurityConfig=")) {
+    manifest = manifest.replace(
+      "<application ",
+      '<application android:networkSecurityConfig="@xml/mindvault_network_security" ',
+    );
+    fs.writeFileSync(manifestPath, manifest);
+  }
+  console.log("Bundled the public MindVault dashboard CA for local HTTPS.");
+}
+
 const androidUserHome = path.resolve(
   process.env.ANDROID_USER_HOME || path.join(runtimeRoot, "android-user"),
 );
