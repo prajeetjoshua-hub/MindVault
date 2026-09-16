@@ -83,7 +83,8 @@ export default function App() {
   const traces = useRef<TraceEvent[]>([]),
     conversationId = useRef(id()),
     dataRef = useRef(data),
-    generation = useRef(0);
+    generation = useRef(0),
+    sending = useRef(false);
   const emit = (event: TraceEvent) => {
     traces.current = [...traces.current, event].slice(-1000);
     monitor.send(event);
@@ -242,7 +243,10 @@ export default function App() {
     };
   }, [engine, monitor, vault, model]);
   const send = async () => {
-    if (!draft.trim() || busy) return;
+    // React state updates are asynchronous. The ref closes the brief window in
+    // which a fast second tap could submit the same draft before `busy` renders.
+    if (!draft.trim() || busy || sending.current) return;
+    sending.current = true;
     const text = draft;
     setDraft("");
     setError("");
@@ -307,6 +311,7 @@ export default function App() {
         );
       }
     } finally {
+      sending.current = false;
       if (turn === generation.current) {
         setBusy(false);
       }
@@ -397,7 +402,13 @@ export default function App() {
         <StatusBar style="light" />
         <KeyboardAvoidingView
           style={ui.shell}
-          behavior={Platform.OS === "ios" ? "padding" : undefined}
+          behavior={
+            Platform.OS === "ios"
+              ? "padding"
+              : Platform.OS === "android"
+                ? "height"
+                : undefined
+          }
         >
           <View style={ui.header}>
             <Text style={ui.brand}>

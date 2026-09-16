@@ -18,6 +18,7 @@ import { isReplyFeedback } from "../support-content/conversation.ts";
 import { modelPermission } from "../policy/modelPermission.ts";
 import { analyseSentiment } from "../sentiment/analyseSentiment.ts";
 import { companionInstruction } from "./companionInstruction.ts";
+import { throwIfAborted } from "../utils/throwIfAborted.ts";
 
 export class ConversationOrchestrator {
   private active?: AbortController;
@@ -277,9 +278,43 @@ export class ConversationOrchestrator {
         clinicalProbability: false,
       });
       const permission = modelPermission(decision, this.unresolvedSafety);
-      const sentiment = permission.allowed
-        ? await analyseSentiment(input, controller.signal)
-        : undefined;
+      let sentiment:
+        | Awaited<ReturnType<typeof analyseSentiment>>
+        | {
+            mean: 0;
+            min: 0;
+            max: 0;
+            sections: 0;
+            processed: 0;
+            unavailable: true;
+          }
+        | undefined;
+      if (permission.allowed) {
+        try {
+          sentiment = await analyseSentiment(input, controller.signal);
+          event("sentiment", "completed", {
+            sections: sentiment.sections,
+            processed: sentiment.processed,
+            advisory: true,
+          });
+        } catch {
+          // VADER is advisory. A platform-specific sentiment failure must never
+          // prevent deterministic support or a permitted local-model reply.
+          throwIfAborted(controller.signal);
+          sentiment = {
+            mean: 0,
+            min: 0,
+            max: 0,
+            sections: 0,
+            processed: 0,
+            unavailable: true,
+          };
+          event("sentiment", "failed", {
+            reason: "advisory-analyser-unavailable",
+            responseBlocked: false,
+          });
+        }
+      }
       const privacyQuestion =
         /\b(?:watching|seeing|viewing|accessing|reading|monitoring|looking at|checking)\b.*\b(?:chat|conversation|messages)\b|\b(?:chat|conversation|messages)\b.*\b(?:private|stored|shared|seen|viewed|accessed)\b/.test(
           text,
@@ -451,7 +486,7 @@ export class ConversationOrchestrator {
             instruction: companionInstruction(this.noQuestions, preferences.goal),
             signal: controller.signal,
           });
-          controller.signal.throwIfAborted();
+          throwIfAborted(controller.signal);
           const validation = validateReplyQuality(
             candidate,
             this.previousReply,
@@ -467,14 +502,14 @@ export class ConversationOrchestrator {
           }
           event("model", "completed", { source });
         } catch (error) {
-          controller.signal.throwIfAborted();
+          throwIfAborted(controller.signal);
           event("model", "failed", {
             reason: "runtime-failed",
             fallback: "authored-template",
           });
         }
       }
-      controller.signal.throwIfAborted();
+      throwIfAborted(controller.signal);
       if (
         privacyQuestion &&
         !extracted.evidence.some((e) => e.category === "safety")

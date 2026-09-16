@@ -1,4 +1,5 @@
 import { SentimentIntensityAnalyzer } from 'vader-sentiment';
+import { throwIfAborted } from '../utils/throwIfAborted.ts';
 
 /** Advisory text polarity. Never a diagnosis, emotion certainty, or safety score. */
 export async function analyseSentiment(input: string, signal: AbortSignal) {
@@ -7,7 +8,7 @@ export async function analyseSentiment(input: string, signal: AbortSignal) {
   // Bounded sections keep the older JS port responsive. Aggregation is our
   // approximate section mean, not VADER's single-document compound score.
   while (processed < text.length) {
-    signal.throwIfAborted();
+    throwIfAborted(signal);
     let end = Math.min(processed + 1800, text.length);
     if (end < text.length) {
       const space = text.lastIndexOf(' ', end);

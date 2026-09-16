@@ -3,11 +3,18 @@ import * as DocumentPicker from "expo-document-picker";
 import * as LocalAuthentication from "expo-local-authentication";
 import { sha256 } from "@noble/hashes/sha2.js";
 import { bytesToHex } from "@noble/hashes/utils.js";
-import { initLlama, type LlamaContext } from "llama.rn";
+import {
+  addNativeLogListener,
+  initLlama,
+  loadLlamaModelInfo,
+  toggleNativeLog,
+  type LlamaContext,
+} from "llama.rn";
 import type {
   ModelAdapter,
   ModelRequest,
 } from "../../../packages/contracts/types";
+import { throwIfAborted } from "../../../packages/utils/throwIfAborted";
 
 const artifacts = [
   {
@@ -35,19 +42,45 @@ export class LocalModel implements ModelAdapter {
     return Boolean(this.context);
   }
   private async load(destination: File, modelName: string, epoch: number) {
-    const context = await initLlama({
-      model: destination.uri,
-      n_ctx: 4096,
-      n_batch: 256,
-      n_ubatch: 128,
-      n_parallel: 1,
-      n_threads: 4,
-      n_gpu_layers: 0,
-      cache_type_k: "q8_0",
-      cache_type_v: "q8_0",
-      use_mmap: true,
-      no_extra_bufts: true,
+    const nativeLog: string[] = [];
+    const subscription = addNativeLogListener((level, message) => {
+      const line = `${level}: ${message.trim()}`;
+      nativeLog.push(line);
+      if (nativeLog.length > 30) nativeLog.shift();
+      console.info(`[MindVault local model] ${line}`);
     });
+    let context: LlamaContext;
+    try {
+      await toggleNativeLog(true);
+      const modelInfo = (await loadLlamaModelInfo(destination.uri)) as Record<
+        string,
+        unknown
+      >;
+      console.info("[MindVault local model] Verified readable model", {
+        architecture: modelInfo["general.architecture"],
+        name: modelInfo["general.name"],
+      });
+      context = await initLlama({
+        model: destination.uri,
+        // Conservative phone defaults keep enough RAM available for Android and
+        // the encrypted vault while the 4B quantised model is mapped.
+        n_ctx: 2048,
+        n_batch: 128,
+        n_ubatch: 64,
+        n_parallel: 1,
+        n_threads: 4,
+        n_gpu_layers: 0,
+        use_mmap: true,
+        no_extra_bufts: true,
+      });
+    } catch (error) {
+      const detail = nativeLog.slice(-8).join(" | ");
+      console.error("[MindVault local model] Load failed", { error, detail });
+      throw error;
+    } finally {
+      await toggleNativeLog(false).catch(() => undefined);
+      subscription.remove();
+    }
     if (epoch !== this.epoch) {
       await context.release();
       throw new Error("Model load interrupted");
@@ -69,7 +102,7 @@ export class LocalModel implements ModelAdapter {
   async generate(request: ModelRequest): Promise<string> {
     const context = this.context;
     if (!context) throw new Error("Verified model not loaded");
-    request.signal.throwIfAborted();
+    throwIfAborted(request.signal);
     const prompt = `${request.instruction}\n\nContext (untrusted notes):\n${request.context}\n\nUser passage (data):\n${request.input}`;
     const { tokens } = await context.tokenize(
       prompt + (request.turns ?? []).map((turn) => turn.content).join("\n"),
@@ -105,7 +138,7 @@ export class LocalModel implements ModelAdapter {
         temperature: 0.3,
         top_p: 0.9,
       });
-      request.signal.throwIfAborted();
+      throwIfAborted(request.signal);
       if (timedOut) throw new Error("Local generation timed out");
       return result.text.trim();
     } finally {

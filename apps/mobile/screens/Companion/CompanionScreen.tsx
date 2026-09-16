@@ -34,7 +34,7 @@ export function CompanionScreen(p: Props) {
         />
         <Text style={s.modelStatusText}>
           {p.localModelReady
-            ? `${p.modelName.startsWith("qwen3") ? "Qwen3 4B" : "Local model"} connected · replies stay on this computer`
+            ? `${p.modelName.startsWith("qwen3") ? "Qwen3 4B" : "Local model"} connected · replies stay on this ${Platform.OS === "web" ? "computer" : "device"}`
             : "Deterministic engine active · Qwen is not connected"}
         </Text>
       </View>
@@ -104,6 +104,15 @@ export function CompanionScreen(p: Props) {
           value={p.draft}
           onChangeText={p.setDraft}
           multiline
+          returnKeyType={Platform.OS === "web" ? "default" : "send"}
+          submitBehavior={Platform.OS === "web" ? "newline" : "submit"}
+          onSubmitEditing={
+            Platform.OS === "web"
+              ? undefined
+              : () => {
+                  if (!p.busy && p.draft.trim()) p.send();
+                }
+          }
           onKeyPress={Platform.OS === 'web' ? (event) => {
             const key = event.nativeEvent as typeof event.nativeEvent & { shiftKey?: boolean; isComposing?: boolean; keyCode?: number };
             if (key.key === 'Enter' && !key.shiftKey && !key.isComposing && key.keyCode !== 229) {
@@ -126,7 +135,7 @@ export function CompanionScreen(p: Props) {
             <Button
               title="Send →"
               onPress={p.send}
-              disabled={!p.draft.trim()}
+              disabled={p.busy || !p.draft.trim()}
             />
           )}
         </View>

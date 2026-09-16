@@ -2,6 +2,7 @@ import type {
   ModelAdapter,
   ModelRequest,
 } from "../../../packages/contracts/types";
+import { throwIfAborted } from "../../../packages/utils/throwIfAborted";
 export class LocalModel implements ModelAdapter {
   private readonly storageKey = "mindvault-qwen-session";
   modelName = "not-connected";
@@ -24,7 +25,7 @@ export class LocalModel implements ModelAdapter {
   async generate(request: ModelRequest): Promise<string> {
     if (!this.token)
       throw new Error("Desktop conversation model is not connected");
-    request.signal.throwIfAborted();
+    throwIfAborted(request.signal);
     const active = new AbortController();
     this.active = active;
     const abort = () => active.abort();

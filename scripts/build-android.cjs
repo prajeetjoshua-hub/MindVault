@@ -51,7 +51,19 @@ fs.mkdirSync(physicalGradleUserHome, { recursive: true });
 let gradleUserHome = physicalGradleUserHome;
 let mappedGradleDrive;
 if (process.platform === "win32" && !process.env.GRADLE_USER_HOME) {
-  for (const letter of "GHIJKLMNOPQRSTUVWXYZ") {
+  const mappingMarker = path.join(runtimeRoot, "gradle-cache-drive.txt");
+  let previousDrive = "";
+  try {
+    previousDrive = fs.readFileSync(mappingMarker, "utf8").trim();
+  } catch {}
+  const previousLetter = /^[G-Z]:$/.test(previousDrive)
+    ? previousDrive[0]
+    : "";
+  const driveLetters = [
+    previousLetter,
+    ..."GHIJKLMNOPQRSTUVWXYZ".split(""),
+  ].filter((letter, index, values) => letter && values.indexOf(letter) === index);
+  for (const letter of driveLetters) {
     const drive = `${letter}:`;
     if (fs.existsSync(`${drive}\\`)) continue;
     const mapping = spawnSync("subst.exe", [drive, physicalGradleUserHome], {
@@ -70,11 +82,6 @@ if (process.platform === "win32" && !process.env.GRADLE_USER_HOME) {
     );
   }
 
-  const mappingMarker = path.join(runtimeRoot, "gradle-cache-drive.txt");
-  let previousDrive = "";
-  try {
-    previousDrive = fs.readFileSync(mappingMarker, "utf8").trim();
-  } catch {}
   if (previousDrive !== mappedGradleDrive) {
     const nativeCaches = [
       path.join(androidRoot, "app", ".cxx"),
@@ -100,9 +107,13 @@ const gradle = path.join(
 const gradleArguments = [
   `assemble${buildType}`,
   "-PreactNativeArchitectures=arm64-v8a",
-  // llama.rn ships verified ARM64 binaries. Rebuilding every CPU/OpenCL variant
-  // creates paths that exceed Windows' native filename limit in this workspace.
-  "-PrnllamaBuildFromSource=false",
+  // This llama.rn release requires its native library to be built from the
+  // bundled source. Its packaged Gradle configuration explicitly marks the
+  // prebuilt binaries as stale for the current model/runtime implementation.
+  "-PrnllamaBuildFromSource=true",
+  // The connected Samsung selects this variant. Limiting the source build
+  // avoids compiling five additional full copies of llama.cpp.
+  "-PrnllamaVariants=rnllama,rnllama_v8_2_dotprod",
   // The project may be checked out through a short drive mapping on Windows.
   // Disabling incremental Kotlin caches avoids mixing mapped and physical roots.
   "-Pkotlin.incremental=false",

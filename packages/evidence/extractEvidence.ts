@@ -1,6 +1,7 @@
 import type { Evidence, Topic } from "../contracts/types.ts";
 import { sections } from "../normalisation/normalise.ts";
 import { ambiguity, safetyRules, supportRules } from "./rules.ts";
+import { throwIfAborted } from "../utils/throwIfAborted.ts";
 
 export async function extractEvidence(
   text: string,
@@ -18,7 +19,7 @@ export async function extractEvidence(
       text,
     );
   for (const section of sections(text)) {
-    signal.throwIfAborted();
+    throwIfAborted(signal);
     const collect = (
       id: string,
       pattern: RegExp,
