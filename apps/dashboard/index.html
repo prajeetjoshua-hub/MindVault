@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>MindVault · Live pipeline</title>
+    <link rel="stylesheet" href="/dashboard.css" />
+  </head>
+  <body>
+    <header>
+      <div class="brand">◒ MindVault<span>LIVE PIPELINE</span></div>
+      <div id="connection">Connecting to local monitor…</div>
+    </header>
+    <main>
+      <section class="intro">
+        <div>
+          <p class="eyebrow">OBSERVE WHAT ACTUALLY HAPPENED</p>
+          <h1>Inside the quiet.</h1>
+          <p>
+            Live execution evidence from the companion, including the local test
+            message and its processing time. Nothing is stored after restart.
+          </p>
+        </div>
+        <div class="actions">
+          <button id="pair">Pair a device</button
+          ><button id="clear" class="secondary">Clear traces</button
+          ><button id="export" class="secondary">Export trace</button>
+        </div>
+      </section>
+      <section id="pairing" hidden>
+        <h2>Session pairing</h2>
+        <p id="pairNote"></p>
+        <textarea
+          id="pairData"
+          readonly
+          aria-label="Pairing configuration"
+        ></textarea>
+        <button id="copyPair" class="secondary" disabled>
+          Copy pairing configuration
+        </button>
+        <p>
+          Paste this into Settings → Demo connection in the prototype. It stays
+          valid until the local dashboard service closes. Keep it private.
+        </p>
+      </section>
+      <section class="metrics">
+        <article>
+          <span>ROUTE</span><strong id="route">Waiting</strong
+          ><small>Software support route, not a clinical assessment</small>
+        </article>
+        <article>
+          <span>SUPPORT INTENSITY</span><strong id="score">—</strong
+          ><small>Provisional policy · deduplicated contributions</small>
+        </article>
+        <article>
+          <span>MODEL</span><strong id="model">Not called</strong
+          ><small id="modelReason"
+            >Waiting for an actual model-gate event</small
+          >
+        </article>
+        <article>
+          <span>COVERAGE</span><strong id="coverage">—</strong
+          ><small>Sections examined by the rule engine</small>
+        </article>
+      </section>
+      <div class="workspace">
+        <aside>
+          <div class="aside-block messages-block">
+            <h2>Messages</h2>
+            <div id="traces">
+              <p>No traces yet. Send a message in the paired app.</p>
+            </div>
+          </div>
+          <div class="aside-block tests-block">
+            <h2>Latest test run</h2>
+            <p id="testSummary">Reading local test report…</p>
+            <details>
+              <summary>View test cases</summary>
+              <div id="testCases"></div>
+            </details>
+          </div>
+        </aside>
+        <section>
+          <div class="section-title">
+            <h2>Execution timeline</h2>
+            <span id="traceId">No selected message</span>
+          </div>
+          <div class="message-preview" id="messagePreview">
+            Waiting for a paired test message.
+          </div>
+          <div class="calculation" id="calculation">
+            P + F + O + C = support intensity. Safety evidence overrides this
+            calculation.
+          </div>
+          <div id="timeline">
+            <div class="empty">The layers will appear here as they run.</div>
+          </div>
+        </section>
+      </div>
+      <footer>
+        LOCAL MONITOR · MEMORY-ONLY TRACES · EXPERIMENTAL POLICY ·
+        prajeetjoshua-hub
+      </footer>
+    </main>
+    <script src="/dashboard.js"></script>
+  </body>
+</html>
